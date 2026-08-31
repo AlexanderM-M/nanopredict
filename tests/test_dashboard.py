@@ -64,6 +64,9 @@ class ReplayCatalogTests(unittest.TestCase):
         self.assertIn("THRESHOLD REACHED", javascript)
         self.assertIn("rate_cpg_per_minute", javascript)
         self.assertIn("CpG ETA", javascript)
+        self.assertNotIn('class="timeline panel"', html)
+        self.assertNotIn("timelineFill", javascript)
+        self.assertNotIn("function renderTimeline", javascript)
 
     def test_prediction_display_uses_adaptive_yield_units(self):
         javascript = (static_dir() / "app.js").read_text(encoding="utf-8")

@@ -91,7 +91,6 @@ The repository launcher accepts the same option: `.\nanopredict.cmd --replay`.
 - GOOD, BAD, or UNCERTAIN status with an explanation
 - Concise peer-based suspected QC problem flags
 - Observed passed yield, reads, and temperature
-- A live 30/60/120-minute checkpoint timeline
 - One selectable overview of every active MinION position
 - Live NanoDx classifier CpGs and progress toward the institute threshold of 180
 - Recent CpG accumulation rate and estimated time to the 180-CpG threshold

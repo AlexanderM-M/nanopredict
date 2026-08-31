@@ -43,7 +43,6 @@ const elements = {
   cpgProgressPercent: document.getElementById('cpgProgressPercent'),
   cpgRate: document.getElementById('cpgRateValue'),
   cpgEta: document.getElementById('cpgEtaValue'),
-  timelineFill: document.getElementById('timelineFill'),
   prediction: document.getElementById('predictionValue'),
   predictionUnit: document.getElementById('predictionUnit'),
   interval: document.getElementById('intervalValue'),
@@ -323,14 +322,6 @@ function renderCpgProgress(data) {
         : duration(cpg.eta_minutes);
 }
 
-function renderTimeline(horizon) {
-  const positions = { null: 0, 30: 33.333, 60: 66.666, 120: 100 };
-  elements.timelineFill.style.width = `${positions[horizon] || 0}%`;
-  document.querySelectorAll('.checkpoint[data-horizon]').forEach(node => {
-    node.classList.toggle('done', horizon !== null && Number(node.dataset.horizon) <= horizon);
-  });
-}
-
 function renderStatus(data) {
   configureMode(data.mode, data.minknow_version, data.active_position_count || 0);
   renderPositions(data);
@@ -364,8 +355,6 @@ function renderStatus(data) {
   elements.start.textContent = live ? 'Apply target' : data.state === 'running' ? 'Restart replay' : 'Start replay';
   renderLiveProgress(data);
   renderCpgProgress(data);
-  renderTimeline(data.current_horizon_minutes);
-
   const obs = data.observations;
   elements.observed.textContent = obs ? number(obs.passed_yield_gb, 2) : '—';
   elements.reads.textContent = obs ? compactNumber(obs.total_reads) : '—';

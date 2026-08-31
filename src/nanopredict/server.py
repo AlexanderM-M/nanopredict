@@ -77,7 +77,7 @@ def make_handler(application: DashboardApplication):
     assets = static_dir().resolve()
 
     class DashboardHandler(BaseHTTPRequestHandler):
-        server_version = "Nanopredict/0.6.0"
+        server_version = "Nanopredict/0.6.1"
 
         def log_message(self, format: str, *args: Any) -> None:
             return
