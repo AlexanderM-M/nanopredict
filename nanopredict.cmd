@@ -6,7 +6,7 @@ set "NANOPREDICT_ENV=%NANOPREDICT_ROOT%.nanopredict-env"
 set "NANOPREDICT_PYTHON=%NANOPREDICT_ENV%\Scripts\python.exe"
 set "NANOPREDICT_READY=%NANOPREDICT_ENV%\.ready"
 
-if not exist "%NANOPREDICT_READY%" (
+if not exist "%NANOPREDICT_PYTHON%" (
     echo First run: creating the private Nanopredict environment...
     where py.exe >nul 2>nul
     if errorlevel 1 (
@@ -18,15 +18,23 @@ if not exist "%NANOPREDICT_READY%" (
         echo Nanopredict requires 64-bit Python 3.9-3.12.
         exit /b 1
     )
-    if not exist "%NANOPREDICT_PYTHON%" (
-        py.exe -3 -m venv "%NANOPREDICT_ENV%"
-        if errorlevel 1 exit /b 1
-    )
+    py.exe -3 -m venv "%NANOPREDICT_ENV%"
+    if errorlevel 1 exit /b 1
     "%NANOPREDICT_PYTHON%" -m pip install --upgrade pip
     if errorlevel 1 exit /b 1
-    "%NANOPREDICT_PYTHON%" -m pip install --editable "%NANOPREDICT_ROOT%."
+)
+
+for /f "delims=" %%H in ('"%NANOPREDICT_PYTHON%" -c "import hashlib,pathlib,sys; print(hashlib.sha256(pathlib.Path(sys.argv[1]).read_bytes()).hexdigest())" "%NANOPREDICT_ROOT%pyproject.toml"') do set "NANOPREDICT_CONFIG_HASH=%%H"
+set "NANOPREDICT_READY_HASH="
+if exist "%NANOPREDICT_READY%" set /p NANOPREDICT_READY_HASH=<"%NANOPREDICT_READY%"
+
+if not "%NANOPREDICT_READY_HASH%"=="%NANOPREDICT_CONFIG_HASH%" (
+    echo Installing or updating Nanopredict...
+    "%NANOPREDICT_PYTHON%" -m pip install "setuptools>=68" wheel
     if errorlevel 1 exit /b 1
-    type nul > "%NANOPREDICT_READY%"
+    "%NANOPREDICT_PYTHON%" -m pip install --no-build-isolation --editable "%NANOPREDICT_ROOT%."
+    if errorlevel 1 exit /b 1
+    >"%NANOPREDICT_READY%" echo %NANOPREDICT_CONFIG_HASH%
 )
 
 "%NANOPREDICT_PYTHON%" -m nanopredict %*
