@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "nanopredict"
-version = "0.4.0"
+version = "0.4.1"
 description = "Local calibrated Nanopore yield prediction dashboard"
 readme = "README.md"
 requires-python = ">=3.9,<3.13"

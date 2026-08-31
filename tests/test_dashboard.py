@@ -59,6 +59,13 @@ class ReplayCatalogTests(unittest.TestCase):
         self.assertIn("LIVE PASSED YIELD", html)
         self.assertIn("TARGET REACHED", javascript)
 
+    def test_prediction_display_uses_adaptive_yield_units(self):
+        javascript = (static_dir() / "app.js").read_text(encoding="utf-8")
+        self.assertIn("function yieldParts(gb)", javascript)
+        self.assertIn("unit: 'Mb'", javascript)
+        self.assertIn("unit: 'kb'", javascript)
+        self.assertIn("yieldText(interval.lower_gb)", javascript)
+
 
 class ReplaySessionTests(unittest.TestCase):
     @classmethod

@@ -37,6 +37,7 @@ const elements = {
   eta: document.getElementById('etaValue'),
   timelineFill: document.getElementById('timelineFill'),
   prediction: document.getElementById('predictionValue'),
+  predictionUnit: document.getElementById('predictionUnit'),
   interval: document.getElementById('intervalValue'),
   probabilityRing: document.getElementById('probabilityRing'),
   probability: document.getElementById('probabilityValue'),
@@ -82,6 +83,26 @@ function duration(minutes) {
   if (minutes < 1) return '<1 min';
   if (minutes < 120) return `${Math.round(minutes)} min`;
   return `${number(minutes / 60, 1)} h`;
+}
+
+function yieldParts(gb) {
+  const value = Number(gb);
+  if (!Number.isFinite(value)) return { value: '—', unit: 'GB' };
+  if (value === 0) return { value: '0', unit: 'Mb' };
+  if (value >= 1) {
+    return { value: number(value, value < 10 ? 2 : 1), unit: 'GB' };
+  }
+  if (value >= 0.001) {
+    const mb = value * 1000;
+    return { value: number(mb, mb < 10 ? 1 : 0), unit: 'Mb' };
+  }
+  const kb = value * 1e6;
+  return { value: number(kb, kb < 10 ? 1 : 0), unit: 'kb' };
+}
+
+function yieldText(gb) {
+  const parts = yieldParts(gb);
+  return `${parts.value} ${parts.unit}`;
 }
 
 function renderTargetEquivalent() {
@@ -161,7 +182,7 @@ function renderPositions(data) {
     detail.textContent = position.passed_bases !== null && position.passed_bases !== undefined
       ? `${compactNumber(position.passed_bases)} bases · ${number(position.progress_percent, 0)}% of target`
       : position.current_horizon_minutes
-        ? `${position.current_horizon_minutes}-min prediction · ${number(position.prediction_gb)} GB`
+        ? `${position.current_horizon_minutes}-min prediction · ${yieldText(position.prediction_gb)}`
       : position.state === 'waiting'
         ? 'Waiting for acquisition'
         : `Next prediction: ${position.next_horizon_minutes || 30} min`;
@@ -297,6 +318,7 @@ function renderStatus(data) {
     elements.statusBadge.className = 'status-badge pending';
     elements.statusBadge.querySelector('strong').textContent = 'COLLECTING';
     elements.prediction.textContent = '—';
+    elements.predictionUnit.textContent = 'GB';
     elements.interval.textContent = `Next prediction at ${data.next_horizon_minutes} minutes`;
     elements.probability.textContent = '—';
     elements.probabilityRing.style.setProperty('--probability', '0deg');
@@ -308,10 +330,12 @@ function renderStatus(data) {
     const interval = prediction.prediction_intervals['90'];
     const probability = assessment.probability_of_reaching_target;
     const status = assessment.status.toLowerCase();
+    const shownPrediction = yieldParts(prediction.point_prediction_gb);
     elements.statusBadge.className = `status-badge ${status}`;
     elements.statusBadge.querySelector('strong').textContent = assessment.status;
-    elements.prediction.textContent = number(prediction.point_prediction_gb);
-    elements.interval.textContent = `90% interval: ${number(interval.lower_gb)}–${number(interval.upper_gb)} GB · ${prediction.horizon_minutes}-min model`;
+    elements.prediction.textContent = shownPrediction.value;
+    elements.predictionUnit.textContent = shownPrediction.unit;
+    elements.interval.textContent = `90% interval: ${yieldText(interval.lower_gb)}–${yieldText(interval.upper_gb)} · ${prediction.horizon_minutes}-min model`;
     elements.probability.textContent = `${Math.round(probability * 100)}%`;
     elements.probabilityRing.style.setProperty('--probability', `${probability * 360}deg`);
     elements.confidence.textContent = `${assessment.status_confidence} confidence`;
