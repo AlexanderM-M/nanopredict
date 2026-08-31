@@ -83,7 +83,7 @@ function configureMode(mode, version) {
   elements.sourcePill.textContent = live ? 'Read-only' : 'Anonymous data';
   elements.modeName.textContent = live ? 'Live MinKNOW' : 'Historical replay';
   elements.modeDetail.textContent = live
-    ? `${version || 'MinKNOW 6.4'} · MinION · local`
+    ? `${version || 'MinKNOW 6.10'} · MinION · local`
     : 'Anonymous MinION runs · accelerated';
   elements.start.textContent = live ? 'Apply target' : 'Start replay';
   elements.runMode.textContent = live ? 'Live' : 'Replay';

@@ -75,13 +75,13 @@ class FakeStatistics:
 
 
 class FakeConnection:
-    def __init__(self, acquisition):
+    def __init__(self, acquisition, core_version=(6, 10, 12)):
         self.statistics = FakeStatistics()
         version = instance_pb2.GetVersionInfoResponse()
-        version.minknow.major = 6
-        version.minknow.minor = 4
-        version.minknow.patch = 9
-        version.minknow.full = "6.4.9"
+        version.minknow.major, version.minknow.minor, version.minknow.patch = (
+            core_version
+        )
+        version.minknow.full = ".".join(str(item) for item in core_version)
         self.instance = SimpleNamespace(get_version_info=lambda **kwargs: version)
         self.acquisition = SimpleNamespace(
             get_current_acquisition_run=lambda **kwargs: acquisition
@@ -127,7 +127,7 @@ class LiveCollectorTests(unittest.TestCase):
         row = self.collector.collect(30, context)
         artifact = joblib.load(models_dir() / "calibrated_yield_30min.joblib")
         self.assertFalse(set(artifact["feature_columns"]) - set(row))
-        self.assertEqual(context["minknow_version"], "6.4.9")
+        self.assertEqual(context["minknow_version"], "6.10.12")
         self.assertNotIn("private-run-id", context["run_key"])
         self.assertAlmostEqual(row["observed_passed_base_fraction"], 0.9)
         self.assertAlmostEqual(row["observed_average_passed_bases_per_hour"], 1.8e9)
@@ -154,6 +154,19 @@ class LiveCollectorTests(unittest.TestCase):
         manager = SimpleNamespace(flow_cell_positions=lambda: [position])
         collector = MinknowCollector(manager_factory=lambda **kwargs: manager)
         with self.assertRaisesRegex(NoActiveRunError, "Waiting"):
+            collector.inspect()
+
+    def test_rejects_a_mismatched_core_client_version(self):
+        connection = FakeConnection(fake_run(), core_version=(6, 4, 9))
+        position = SimpleNamespace(
+            name="MN12345",
+            device_type="MINION_MK1D",
+            protocol_state="protocol_running",
+            connect=lambda: connection,
+        )
+        manager = SimpleNamespace(flow_cell_positions=lambda: [position])
+        collector = MinknowCollector(manager_factory=lambda **kwargs: manager)
+        with self.assertRaisesRegex(RuntimeError, "requires 6.10"):
             collector.inspect()
 
     def test_live_monitor_emits_a_calibrated_checkpoint(self):

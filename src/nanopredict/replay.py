@@ -167,7 +167,7 @@ class ReplaySession:
                     "mode": "replay",
                     "state": "waiting",
                     "message": "Choose an anonymous historical run to begin.",
-                    "minknow_core_target": "6.4.x",
+                    "minknow_core_target": "6.10.x",
                     "device_target": "MinION",
                 }
 
@@ -221,6 +221,6 @@ class ReplaySession:
                     if completed
                     else f"Collecting data for the {next_horizon}-minute checkpoint."
                 ),
-                "minknow_core_target": "6.4.x",
+                "minknow_core_target": "6.10.x",
                 "device_target": "MinION",
             }

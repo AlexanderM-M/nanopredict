@@ -1,7 +1,7 @@
 # Nanopredict
 
 Nanopredict is a local browser dashboard for calibrated early prediction of
-Oxford Nanopore MinION run yield. It connects read-only to MinKNOW Core 6.4,
+Oxford Nanopore MinION run yield. It connects read-only to MinKNOW Core 6.10,
 collects live run statistics, and predicts final passed yield at 30, 60, and
 120 minutes. An anonymous historical replay mode is included for testing.
 
@@ -10,8 +10,8 @@ collects live run statistics, and predicts final passed yield at 30, 60, and
 
 ## Quick start from a clone
 
-Requirements: MinKNOW Core 6.4.x, Git, and 64-bit Python 3.9–3.12 on the
-sequencing computer. The live collector is built for MinKNOW 6.4.9 and MinION.
+Requirements: MinKNOW Core 6.10.x, Git, and 64-bit Python 3.9–3.12 on the
+sequencing computer. The live collector targets Core 6.10.12 and MinION.
 
 ```powershell
 git clone https://github.com/AlexanderM-M/nanopredict.git
@@ -87,8 +87,8 @@ device serials, names, or N-numbers.
 
 ## Live collector and safety
 
-The package pins `minknow_api` 6.4.3 because the first two client version
-components must match MinKNOW Core 6.4. The collector auto-detects an active
+The package pins `minknow_api` 6.10.3 because the first two client version
+components must match MinKNOW Core 6.10. The collector auto-detects an active
 MinION, verifies the Core version, and reads acquisition output, basecall
 boxplots, duty time, temperature, basecaller settings, and pore-scan results.
 

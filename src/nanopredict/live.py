@@ -1,4 +1,4 @@
-"""Read-only MinKNOW 6.4 feature collection for live MinION runs."""
+"""Read-only MinKNOW 6.10 feature collection for live MinION runs."""
 
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ from .replay import SUPPORTED_HORIZONS
 
 MINION_DEVICE_TYPES = {"MINION", "MINION_MK1C", "MINION_MK1D"}
 MODEL_DEVICE_TYPE = "MINION_MK1D"
-CALIBRATION_PURPOSE = 3  # minknow_api.acquisition_pb2.CALIBRATION in API 6.4
+CALIBRATION_PURPOSE = 3  # minknow_api.acquisition_pb2.CALIBRATION in API 6.x
 
 
 class MinknowUnavailableError(RuntimeError):
@@ -269,7 +269,7 @@ class MinknowCollector:
             from minknow_api.manager import Manager
         except ImportError as exc:
             raise MinknowUnavailableError(
-                "The MinKNOW 6.4 client is not installed. Reinstall Nanopredict."
+                "The MinKNOW 6.10 client is not installed. Reinstall Nanopredict."
             ) from exc
         return Manager(host=self.host)
 
@@ -314,9 +314,9 @@ class MinknowCollector:
             ) from exc
         major = int(getattr(version.minknow, "major", 0))
         minor = int(getattr(version.minknow, "minor", 0))
-        if (major, minor) != (6, 4):
+        if (major, minor) != (6, 10):
             raise MinknowUnavailableError(
-                f"Connected MinKNOW Core is {major}.{minor}; this collector requires 6.4.x."
+                f"Connected MinKNOW Core is {major}.{minor}; this collector requires 6.10.x."
             )
         try:
             acquisition = connection.acquisition.get_current_acquisition_run(
@@ -369,7 +369,9 @@ class MinknowCollector:
         try:
             from minknow_api import statistics_pb2
         except ImportError as exc:
-            raise MinknowUnavailableError("The MinKNOW 6.4 client is not installed.") from exc
+            raise MinknowUnavailableError(
+                "The MinKNOW 6.10 client is not installed."
+            ) from exc
 
         selection = statistics_pb2.DataSelection(
             start=0, step=1800, end=horizon_seconds + 1
@@ -668,7 +670,7 @@ class LiveMonitor:
                 "warning": self._warning,
                 "last_update": self._last_update,
                 "minknow_version": self._minknow_version,
-                "minknow_core_target": "6.4.x",
+                "minknow_core_target": "6.10.x",
                 "device_target": "MinION",
                 "read_only": True,
             }
