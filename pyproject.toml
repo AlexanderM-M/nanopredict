@@ -4,13 +4,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "nanopredict"
-version = "0.1.0"
+version = "0.2.0"
 description = "Local calibrated Nanopore yield prediction dashboard"
 readme = "README.md"
-requires-python = ">=3.9,<3.14"
+requires-python = ">=3.9,<3.13"
 dependencies = [
   "joblib==1.5.3",
-  "numpy==2.0.2",
+  "minknow_api==6.4.3",
+  "numpy==1.26.4",
   "scikit-learn==1.6.1",
 ]
 classifiers = [
@@ -22,12 +23,8 @@ classifiers = [
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
-  "Programming Language :: Python :: 3.13",
   "Topic :: Scientific/Engineering :: Bio-Informatics",
 ]
-
-[project.optional-dependencies]
-minknow64 = ["minknow_api==6.4.3"]
 
 [project.scripts]
 nanopredict = "nanopredict.cli:main"

@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import re
 import unittest
+from html.parser import HTMLParser
 
 from nanopredict.diagnose_run import RunDecisionEngine
-from nanopredict.paths import diagnostic_reference, models_dir, replay_features
+from nanopredict.paths import diagnostic_reference, models_dir, replay_features, static_dir
 from nanopredict.predict_calibrated import CalibratedYieldPredictor
 from nanopredict.replay import ReplayCatalog, ReplaySession
 
@@ -26,6 +28,26 @@ class ReplayCatalogTests(unittest.TestCase):
     def test_unknown_sample_is_rejected(self):
         with self.assertRaisesRegex(ValueError, "Unknown replay sample"):
             self.catalog.get("SampleDoesNotExist")
+
+    def test_packaged_dashboard_entrypoint_exists(self):
+        self.assertTrue((static_dir() / "index.html").is_file())
+
+    def test_javascript_element_ids_exist_in_dashboard(self):
+        html = (static_dir() / "index.html").read_text(encoding="utf-8")
+        javascript = (static_dir() / "app.js").read_text(encoding="utf-8")
+        referenced = set(re.findall(r"getElementById\('([^']+)'\)", javascript))
+
+        class IdCollector(HTMLParser):
+            def __init__(self):
+                super().__init__()
+                self.ids = set()
+
+            def handle_starttag(self, tag, attrs):
+                self.ids.update(value for name, value in attrs if name == "id")
+
+        collector = IdCollector()
+        collector.feed(html)
+        self.assertFalse(referenced - collector.ids)
 
 
 class ReplaySessionTests(unittest.TestCase):

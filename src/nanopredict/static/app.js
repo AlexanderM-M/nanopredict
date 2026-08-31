@@ -2,14 +2,24 @@ const elements = {
   connection: document.querySelector('.connection'),
   connectionText: document.getElementById('connectionText'),
   sample: document.getElementById('sampleSelect'),
+  sampleControl: document.getElementById('sampleControl'),
   target: document.getElementById('targetInput'),
   speed: document.getElementById('speedSelect'),
+  speedControl: document.getElementById('speedControl'),
+  setupTitle: document.getElementById('setupTitle'),
+  sourcePill: document.getElementById('sourcePill'),
+  modeName: document.getElementById('modeName'),
+  modeDetail: document.getElementById('modeDetail'),
+  privacyCopy: document.getElementById('privacyCopy'),
   start: document.getElementById('startButton'),
   advance: document.getElementById('advanceButton'),
   stop: document.getElementById('stopButton'),
   waiting: document.getElementById('waitingState'),
+  waitingTitle: document.getElementById('waitingTitle'),
+  waitingCopy: document.getElementById('waitingCopy'),
   run: document.getElementById('runState'),
   sampleName: document.getElementById('sampleName'),
+  runMode: document.getElementById('runMode'),
   runMessage: document.getElementById('runMessage'),
   statusBadge: document.getElementById('statusBadge'),
   timelineFill: document.getElementById('timelineFill'),
@@ -30,6 +40,8 @@ const elements = {
 };
 
 let lastState = 'waiting';
+let currentMode = null;
+let runsLoaded = false;
 let toastTimer;
 
 function number(value, digits = 1) {
@@ -50,10 +62,7 @@ function showToast(message) {
 }
 
 async function api(path, options = {}) {
-  const response = await fetch(path, {
-    headers: { 'Content-Type': 'application/json' },
-    ...options
-  });
+  const response = await fetch(path, { headers: { 'Content-Type': 'application/json' }, ...options });
   const body = await response.json();
   if (!response.ok) throw new Error(body.error || 'Request failed');
   return body;
@@ -62,6 +71,26 @@ async function api(path, options = {}) {
 function setConnected(connected) {
   elements.connection.classList.toggle('online', connected);
   elements.connectionText.textContent = connected ? 'Dashboard online' : 'Reconnecting';
+}
+
+function configureMode(mode, version) {
+  const live = mode === 'minknow';
+  currentMode = mode;
+  elements.sampleControl.classList.toggle('hidden', live);
+  elements.speedControl.classList.toggle('hidden', live);
+  elements.advance.parentElement.classList.toggle('hidden', live);
+  elements.setupTitle.textContent = live ? 'Monitor a run' : 'Replay a run';
+  elements.sourcePill.textContent = live ? 'Read-only' : 'Anonymous data';
+  elements.modeName.textContent = live ? 'Live MinKNOW' : 'Historical replay';
+  elements.modeDetail.textContent = live
+    ? `${version || 'MinKNOW 6.4'} · MinION · local`
+    : 'Anonymous MinION runs · accelerated';
+  elements.start.textContent = live ? 'Apply target' : 'Start replay';
+  elements.runMode.textContent = live ? 'Live' : 'Replay';
+  elements.privacyCopy.innerHTML = live
+    ? '<strong>Local and read-only.</strong><br>Nanopredict reads run statistics but cannot pause, stop, or alter sequencing.'
+    : '<strong>Anonymous replay.</strong><br>Replay labels contain no patient names, run identifiers, or N-numbers.';
+  if (!live && !runsLoaded) loadRuns().catch(error => showToast(error.message));
 }
 
 function renderProblems(items) {
@@ -98,22 +127,30 @@ function renderTimeline(horizon) {
 }
 
 function renderStatus(data) {
-  const waiting = data.state === 'waiting';
+  configureMode(data.mode, data.minknow_version);
+  const live = data.mode === 'minknow';
+  const waiting = ['waiting', 'connecting', 'error'].includes(data.state);
   elements.waiting.classList.toggle('hidden', !waiting);
   elements.run.classList.toggle('hidden', waiting);
   if (waiting) {
+    elements.waitingTitle.textContent = data.state === 'error'
+      ? 'Live connection problem'
+      : live ? 'Waiting for a MinION run' : 'Ready for a replay';
+    elements.waitingCopy.textContent = data.message || (live
+      ? 'Start a sequencing run in MinKNOW. Nanopredict will detect it automatically.'
+      : 'Choose a historical run and target yield to begin.');
     elements.advance.disabled = true;
     elements.stop.disabled = true;
     lastState = data.state;
     return;
   }
 
-  elements.sampleName.textContent = data.sample_id;
+  elements.sampleName.textContent = data.sample_id || 'Live MinION run';
   elements.runMessage.textContent = data.message;
   elements.targetValue.textContent = `Target: ${number(data.target_gb)} GB`;
-  elements.advance.disabled = data.state === 'complete' || data.state === 'stopped';
-  elements.stop.disabled = data.state === 'complete' || data.state === 'stopped';
-  elements.start.textContent = data.state === 'running' ? 'Restart replay' : 'Start replay';
+  elements.advance.disabled = live || data.state === 'complete' || data.state === 'stopped';
+  elements.stop.disabled = live || data.state === 'complete' || data.state === 'stopped';
+  elements.start.textContent = live ? 'Apply target' : data.state === 'running' ? 'Restart replay' : 'Start replay';
   renderTimeline(data.current_horizon_minutes);
 
   const obs = data.observations;
@@ -148,10 +185,10 @@ function renderStatus(data) {
     renderProblems(assessment.suspected_problems);
   }
 
-  const complete = data.state === 'complete' && data.actual_final_gb !== null;
+  const complete = !live && data.state === 'complete' && data.actual_final_gb !== null;
   elements.outcome.classList.toggle('hidden', !complete);
   if (complete) elements.actual.textContent = number(data.actual_final_gb);
-  if (lastState !== 'complete' && data.state === 'complete') showToast('Historical replay complete');
+  if (!live && lastState !== 'complete' && data.state === 'complete') showToast('Historical replay complete');
   lastState = data.state;
 }
 
@@ -164,6 +201,7 @@ async function loadRuns() {
     option.textContent = `${run.sample_id} · 30/60/120 min`;
     elements.sample.append(option);
   });
+  runsLoaded = true;
 }
 
 async function refresh() {
@@ -180,16 +218,17 @@ elements.start.addEventListener('click', async () => {
   try {
     const target = Number(elements.target.value);
     if (!Number.isFinite(target) || target <= 0) throw new Error('Enter a positive target yield');
-    const result = await api('/api/start', {
+    const live = currentMode === 'minknow';
+    const result = await api(live ? '/api/configure' : '/api/start', {
       method: 'POST',
-      body: JSON.stringify({
+      body: JSON.stringify(live ? { target_gb: target } : {
         sample_id: elements.sample.value,
         target_gb: target,
         seconds_per_step: Number(elements.speed.value)
       })
     });
     renderStatus(result);
-    showToast('Replay started');
+    showToast(live ? 'Target updated' : 'Replay started');
   } catch (error) {
     showToast(error.message);
   }
@@ -207,7 +246,6 @@ elements.stop.addEventListener('click', async () => {
 
 (async function initialise() {
   try {
-    await loadRuns();
     await refresh();
     setInterval(refresh, 1000);
   } catch (error) {

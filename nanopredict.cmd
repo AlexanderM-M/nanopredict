@@ -10,12 +10,12 @@ if not exist "%NANOPREDICT_READY%" (
     echo First run: creating the private Nanopredict environment...
     where py.exe >nul 2>nul
     if errorlevel 1 (
-        echo Python was not found. Install 64-bit Python 3.9-3.13 and try again.
+        echo Python was not found. Install 64-bit Python 3.9-3.12 and try again.
         exit /b 1
     )
-    py.exe -3 -c "import sys; raise SystemExit(0 if (3, 9) <= sys.version_info[:2] < (3, 14) else 1)"
+    py.exe -3 -c "import sys; raise SystemExit(0 if (3, 9) <= sys.version_info[:2] < (3, 13) else 1)"
     if errorlevel 1 (
-        echo Nanopredict requires 64-bit Python 3.9-3.13.
+        echo Nanopredict requires 64-bit Python 3.9-3.12.
         exit /b 1
     )
     if not exist "%NANOPREDICT_PYTHON%" (

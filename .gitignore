@@ -22,6 +22,7 @@ Thumbs.db
 
 # Never publish raw or identifying sequencing exports
 *.html
+!src/nanopredict/static/index.html
 sequencing_summary*.txt
 final_summary*.txt
 report_features.csv

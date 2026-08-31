@@ -17,6 +17,7 @@ from .diagnose_run import RunDecisionEngine
 from .predict_calibrated import CalibratedYieldPredictor
 
 from .paths import diagnostic_reference, models_dir, replay_features, static_dir
+from .live import LiveMonitor, MinknowCollector
 from .replay import ReplayCatalog, ReplaySession
 
 
@@ -31,12 +32,39 @@ def _json_safe(value: Any) -> Any:
 
 
 class DashboardApplication:
-    def __init__(self):
+    def __init__(
+        self,
+        source: str = "auto",
+        minknow_host: str = "localhost",
+        position: str | None = None,
+    ):
         predictor = CalibratedYieldPredictor(models_dir())
         engine = RunDecisionEngine(predictor, diagnostic_reference())
         catalog = ReplayCatalog(replay_features())
         self.replay = ReplaySession(catalog, engine)
         self.catalog = catalog
+        if source == "auto":
+            source = "minknow" if MinknowCollector.client_available() else "replay"
+        if source not in {"minknow", "replay"}:
+            raise ValueError(f"Unknown data source: {source}")
+        self.mode = source
+        self.live = (
+            LiveMonitor(MinknowCollector(minknow_host, position), engine)
+            if source == "minknow"
+            else None
+        )
+
+    def status(self) -> dict[str, Any]:
+        return self.live.status() if self.live is not None else self.replay.status()
+
+    def configure(self, target_gb: float) -> dict[str, Any]:
+        if self.live is None:
+            raise ValueError("Live monitoring is not active")
+        return self.live.configure(target_gb)
+
+    def close(self) -> None:
+        if self.live is not None:
+            self.live.close()
 
 
 def make_handler(application: DashboardApplication):
@@ -90,7 +118,7 @@ def make_handler(application: DashboardApplication):
             elif path == "/api/replays":
                 self._send_json({"runs": application.catalog.list_runs()})
             elif path == "/api/status":
-                self._send_json(application.replay.status())
+                self._send_json(application.status())
             elif path.startswith("/api/"):
                 self._send_json({"error": "Unknown API endpoint"}, HTTPStatus.NOT_FOUND)
             else:
@@ -100,15 +128,17 @@ def make_handler(application: DashboardApplication):
             path = urlparse(self.path).path
             try:
                 payload = self._read_json()
-                if path == "/api/start":
+                if path == "/api/configure":
+                    result = application.configure(float(payload.get("target_gb", 10)))
+                elif path == "/api/start" and application.mode == "replay":
                     result = application.replay.start(
                         str(payload.get("sample_id", "")),
                         float(payload.get("target_gb", 10)),
                         float(payload.get("seconds_per_step", 8)),
                     )
-                elif path == "/api/advance":
+                elif path == "/api/advance" and application.mode == "replay":
                     result = application.replay.advance()
-                elif path == "/api/stop":
+                elif path == "/api/stop" and application.mode == "replay":
                     result = application.replay.stop()
                 elif path == "/api/shutdown":
                     result = {"ok": True, "message": "Dashboard is stopping."}
@@ -132,11 +162,18 @@ def make_handler(application: DashboardApplication):
     return DashboardHandler
 
 
-def serve(host: str = "127.0.0.1", port: int = 8765) -> None:
-    application = DashboardApplication()
+def serve(
+    host: str = "127.0.0.1",
+    port: int = 8765,
+    source: str = "auto",
+    minknow_host: str = "localhost",
+    position: str | None = None,
+) -> None:
+    application = DashboardApplication(source, minknow_host, position)
     server = ThreadingHTTPServer((host, port), make_handler(application))
     server.daemon_threads = True
     try:
         server.serve_forever(poll_interval=0.25)
     finally:
+        application.close()
         server.server_close()

@@ -41,7 +41,13 @@ def _is_running(port: int) -> bool:
     return bool(response and response.get("service") == "nanopredict")
 
 
-def _start_background(port: int, open_browser: bool) -> int:
+def _start_background(
+    port: int,
+    open_browser: bool,
+    source: str,
+    minknow_host: str,
+    position: str | None,
+) -> int:
     if _is_running(port):
         print(f"Nanopredict is already running at {_url(port)}")
         if open_browser:
@@ -50,7 +56,20 @@ def _start_background(port: int, open_browser: bool) -> int:
 
     runtime = state_dir()
     log_path = runtime / "nanopredict.log"
-    command = [sys.executable, "-m", "nanopredict", "_serve", "--port", str(port)]
+    command = [
+        sys.executable,
+        "-m",
+        "nanopredict",
+        "_serve",
+        "--port",
+        str(port),
+        "--source",
+        source,
+        "--minknow-host",
+        minknow_host,
+    ]
+    if position:
+        command.extend(["--position", position])
     kwargs: dict = {
         "cwd": str(runtime),
         "stdin": subprocess.DEVNULL,
@@ -94,21 +113,35 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--no-browser", action="store_true")
     parser.add_argument("--foreground", action="store_true")
     parser.add_argument(
+        "--source",
+        choices=("auto", "minknow", "replay"),
+        default="auto",
+        help="Data source. Auto uses MinKNOW when its client is installed.",
+    )
+    parser.add_argument("--minknow-host", default="localhost")
+    parser.add_argument("--position", help="MinKNOW position name when several runs are active")
+    parser.add_argument(
         "--replay",
         action="store_true",
-        help="Use anonymous historical runs (currently the default data source).",
+        help="Use anonymous historical runs (alias for --source replay).",
     )
     return parser
 
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    source = "replay" if args.replay else args.source
     if not 1024 <= args.port <= 65535:
         print("Port must be between 1024 and 65535.", file=sys.stderr)
         return 2
 
     if args.command == "_serve":
-        serve(port=args.port)
+        serve(
+            port=args.port,
+            source=source,
+            minknow_host=args.minknow_host,
+            position=args.position,
+        )
         return 0
     if args.command == "status":
         if _is_running(args.port):
@@ -131,6 +164,17 @@ def main(argv: list[str] | None = None) -> int:
     if args.foreground:
         if not args.no_browser:
             webbrowser.open(_url(args.port))
-        serve(port=args.port)
+        serve(
+            port=args.port,
+            source=source,
+            minknow_host=args.minknow_host,
+            position=args.position,
+        )
         return 0
-    return _start_background(args.port, not args.no_browser)
+    return _start_background(
+        args.port,
+        not args.no_browser,
+        source,
+        args.minknow_host,
+        args.position,
+    )

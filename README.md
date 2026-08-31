@@ -1,15 +1,17 @@
 # Nanopredict
 
 Nanopredict is a local browser dashboard for calibrated early prediction of
-Oxford Nanopore MinION run yield. It currently provides accelerated replay of
-anonymous historical runs at the validated 30, 60, and 120-minute checkpoints.
+Oxford Nanopore MinION run yield. It connects read-only to MinKNOW Core 6.4,
+collects live run statistics, and predicts final passed yield at 30, 60, and
+120 minutes. An anonymous historical replay mode is included for testing.
 
 > **Research-use prototype:** prospective validation is required. Predictions
 > and suspected-problem flags must not replace MinKNOW QC or operator judgement.
 
 ## Quick start from a clone
 
-Requirements: Git and 64-bit Python 3.9–3.13.
+Requirements: MinKNOW Core 6.4.x, Git, and 64-bit Python 3.9–3.12 on the
+sequencing computer. The live collector is built for MinKNOW 6.4.9 and MinION.
 
 ```powershell
 git clone https://github.com/AlexanderM-M/nanopredict.git
@@ -27,14 +29,20 @@ nanopredict
 ```
 
 Nanopredict starts in the background, binds only to `127.0.0.1`, and opens the
-dashboard in the default browser. Closing the browser does not stop monitoring.
+dashboard in the default browser. It waits for an active MinION run and detects
+new runs automatically. Closing the browser does not stop monitoring.
+
+In the dashboard, enter the desired final passed-yield target and select
+**Apply target**. The first prediction appears when the active run reaches 30
+minutes; it is updated at 60 and 120 minutes. Nanopredict may be started before
+or after sequencing begins.
 
 ```powershell
 nanopredict status
 nanopredict stop
 ```
 
-### Zero-setup repository launcher on Windows
+### Repository launcher on Windows
 
 Instead of installing the command, PowerShell users can run:
 
@@ -52,6 +60,17 @@ On Linux or macOS, the equivalent self-bootstrapping command is:
 ./nanopredict
 ```
 
+## Test without a sequencing run
+
+Stop an already running dashboard, then launch anonymous replay mode:
+
+```powershell
+nanopredict stop
+nanopredict --replay
+```
+
+The repository launcher accepts the same option: `.\nanopredict.cmd --replay`.
+
 ## What the dashboard shows
 
 - Predicted final passed yield and a calibrated 90% interval
@@ -59,27 +78,28 @@ On Linux or macOS, the equivalent self-bootstrapping command is:
 - GOOD, BAD, or UNCERTAIN status with an explanation
 - Peer-based suspected QC problems and suggested checks
 - Observed passed yield, reads, and temperature
-- An accelerated 30/60/120-minute replay timeline
+- A live 30/60/120-minute checkpoint timeline
 
 Replay mode contains 513 snapshots from 171 complete MinION runs. Its table
 contains only anonymous `SampleN` labels, the numerical model inputs, and the
 historical outcome. It contains no report paths, original run identifiers,
 device serials, names, or N-numbers.
 
-## MinKNOW target
+## Live collector and safety
 
-The planned live collector targets MinKNOW Core 6.4.9 on MinION. ONT's
-[`minknow_api` documentation](https://pypi.org/project/minknow-api/) requires
-the first two components of the API client and MinKNOW Core versions to match,
-so the optional environment uses `minknow_api` 6.4.3.
+The package pins `minknow_api` 6.4.3 because the first two client version
+components must match MinKNOW Core 6.4. The collector auto-detects an active
+MinION, verifies the Core version, and reads acquisition output, basecall
+boxplots, duty time, temperature, basecaller settings, and pore-scan results.
 
-```powershell
-py -m pip install ".[minknow64]"
-```
+It uses only documented getter and statistics-stream RPCs. It contains no code
+to start, stop, pause, unblock, change voltage, change temperature, or otherwise
+control a run. Sample names, run IDs, flow-cell IDs, and device serials are not
+sent to the browser or stored by Nanopredict.
 
-The current release is replay-only. Installing the optional client does not yet
-enable live monitoring; the read-only feature collector must first be validated
-on the sequencing computer.
+If several MinION positions are running simultaneously, select one by position
+name with `nanopredict --position POSITION_NAME`. To show connection errors in
+the terminal, use `nanopredict --foreground`.
 
 ## Development
 

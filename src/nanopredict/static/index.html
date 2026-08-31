@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Nanopredict</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></div>
+      <div>
+        <h1>Nanopredict</h1>
+        <p>Early yield intelligence for MinION</p>
+      </div>
+    </div>
+    <div class="connection"><span class="connection-dot"></span><span id="connectionText">Connecting</span></div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div>
+        <p class="eyebrow">RUN MONITOR</p>
+        <h2>Know where your sequencing run is heading.</h2>
+        <p class="hero-copy">Calibrated yield forecasts and transparent quality signals at 30, 60, and 120 minutes.</p>
+      </div>
+      <div class="mode-card">
+        <span class="mode-label">DATA SOURCE</span>
+        <strong id="modeName">Detecting…</strong>
+        <span id="modeDetail">MinKNOW 6.4 · MinION profile</span>
+      </div>
+    </section>
+
+    <section class="layout">
+      <aside class="panel controls-panel">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">SETUP</p>
+            <h3 id="setupTitle">Set up monitoring</h3>
+          </div>
+          <span id="sourcePill" class="pill">Local</span>
+        </div>
+
+        <div id="sampleControl">
+          <label for="sampleSelect">Historical run</label>
+          <select id="sampleSelect"><option>Loading runs…</option></select>
+        </div>
+
+        <label for="targetInput">Target passed yield</label>
+        <div class="input-unit">
+          <input id="targetInput" type="number" min="0.1" step="0.1" value="10">
+          <span>GB</span>
+        </div>
+
+        <div id="speedControl">
+          <label for="speedSelect">Replay speed</label>
+          <select id="speedSelect">
+            <option value="4">Fast · 4 seconds/checkpoint</option>
+            <option value="8" selected>Normal · 8 seconds/checkpoint</option>
+            <option value="20">Slow · 20 seconds/checkpoint</option>
+          </select>
+        </div>
+
+        <button id="startButton" class="primary-button">Start replay</button>
+        <div class="button-row">
+          <button id="advanceButton" class="secondary-button" disabled>Next checkpoint</button>
+          <button id="stopButton" class="quiet-button" disabled>Pause</button>
+        </div>
+
+        <div class="privacy-note">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 4.5 5v5.5c0 5 3.2 9.5 7.5 11.5 4.3-2 7.5-6.5 7.5-11.5V5L12 2Zm0 3 4.5 1.8v3.7c0 3.6-1.9 6.9-4.5 8.5-2.6-1.6-4.5-4.9-4.5-8.5V6.8L12 5Z"/></svg>
+          <p id="privacyCopy"><strong>Local and read-only.</strong><br>The dashboard binds only to this computer and never controls the sequencing run.</p>
+        </div>
+      </aside>
+
+      <section class="workspace">
+        <div id="waitingState" class="panel waiting-state">
+          <div class="waiting-graphic" aria-hidden="true">
+            <span></span><span></span><span></span><span></span><span></span>
+          </div>
+          <h3 id="waitingTitle">Connecting</h3>
+          <p id="waitingCopy">Looking for local MinKNOW and an active MinION run.</p>
+        </div>
+
+        <div id="runState" class="run-state hidden">
+          <section class="panel run-header">
+            <div>
+              <div class="run-meta"><span id="sampleName">Run</span><span>MinION</span><span id="runMode">Live</span></div>
+              <h3 id="runMessage">Collecting early run data</h3>
+            </div>
+            <div id="statusBadge" class="status-badge pending"><span></span><strong>COLLECTING</strong></div>
+          </section>
+
+          <section class="timeline panel">
+            <div class="timeline-labels"><span>Start</span><span>30 min</span><span>60 min</span><span>120 min</span></div>
+            <div class="timeline-track">
+              <div id="timelineFill" class="timeline-fill"></div>
+              <span class="checkpoint start done"></span>
+              <span class="checkpoint" data-horizon="30"></span>
+              <span class="checkpoint" data-horizon="60"></span>
+              <span class="checkpoint" data-horizon="120"></span>
+            </div>
+          </section>
+
+          <section class="metric-grid">
+            <article class="panel primary-metric">
+              <p>Predicted final yield</p>
+              <div><strong id="predictionValue">—</strong><span>GB</span></div>
+              <p id="intervalValue" class="metric-footnote">Available after 30 minutes</p>
+            </article>
+            <article class="panel probability-card">
+              <div id="probabilityRing" class="probability-ring"><div><strong id="probabilityValue">—</strong><span>target probability</span></div></div>
+              <p id="targetValue">Target: 10 GB</p>
+            </article>
+            <article class="panel observed-card">
+              <p>Observed passed yield</p>
+              <div><strong id="observedValue">—</strong><span>GB</span></div>
+              <dl>
+                <div><dt>Reads</dt><dd id="readsValue">—</dd></div>
+                <div><dt>Temperature</dt><dd id="temperatureValue">—</dd></div>
+              </dl>
+            </article>
+          </section>
+
+          <section class="panel interpretation">
+            <div class="section-heading">
+              <div><p class="eyebrow">INTERPRETATION</p><h3>Run assessment</h3></div>
+              <span id="confidenceValue" class="pill">Waiting</span>
+            </div>
+            <p id="statusExplanation" class="explanation">The first calibrated prediction will appear at the 30-minute checkpoint.</p>
+            <div id="problemsList" class="problems-list"></div>
+          </section>
+
+          <section id="outcomePanel" class="panel outcome-panel hidden">
+            <div><p class="eyebrow">REPLAY OUTCOME</p><h3>Actual final passed yield</h3></div>
+            <div><strong id="actualValue">—</strong><span>GB</span></div>
+          </section>
+        </div>
+      </section>
+    </section>
+
+    <p class="research-warning">Research-use prototype. Predictions and suspected problems require prospective validation and must not replace MinKNOW QC or operator judgement.</p>
+  </main>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="/app.js"></script>
+</body>
+</html>
