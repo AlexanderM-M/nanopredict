@@ -1,0 +1,33 @@
+# Python environments and build output
+.nanopredict-env/
+.venv/
+venv/
+build/
+dist/
+*.egg-info/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+
+# Editor and operating-system files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Local logs and runtime files
+*.log
+*.pid
+
+# Never publish raw or identifying sequencing exports
+*.html
+sequencing_summary*.txt
+final_summary*.txt
+report_features.csv
+report_audit.csv
+nanopore_file_inventory.csv
+nanopore_run_status.csv
+
+# The deliberately minimized anonymous replay asset is safe to package.
+!src/nanopredict/data/replay_features_anonymous.csv

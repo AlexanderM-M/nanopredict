@@ -1,0 +1,27 @@
+#!/usr/bin/env sh
+set -eu
+
+NANOPREDICT_ROOT=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+NANOPREDICT_ENV="$NANOPREDICT_ROOT/.nanopredict-env"
+NANOPREDICT_PYTHON="$NANOPREDICT_ENV/bin/python"
+NANOPREDICT_READY="$NANOPREDICT_ENV/.ready"
+
+if [ ! -f "$NANOPREDICT_READY" ]; then
+    echo "First run: creating the private Nanopredict environment..."
+    command -v python3 >/dev/null 2>&1 || {
+        echo "Python was not found. Install Python 3.9-3.13 and try again." >&2
+        exit 1
+    }
+    python3 -c 'import sys; raise SystemExit(0 if (3, 9) <= sys.version_info[:2] < (3, 14) else 1)' || {
+        echo "Nanopredict requires Python 3.9-3.13." >&2
+        exit 1
+    }
+    if [ ! -x "$NANOPREDICT_PYTHON" ]; then
+        python3 -m venv "$NANOPREDICT_ENV"
+    fi
+    "$NANOPREDICT_PYTHON" -m pip install --upgrade pip
+    "$NANOPREDICT_PYTHON" -m pip install --editable "$NANOPREDICT_ROOT"
+    : > "$NANOPREDICT_READY"
+fi
+
+exec "$NANOPREDICT_PYTHON" -m nanopredict "$@"

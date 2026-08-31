@@ -1,0 +1,50 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nanopredict"
+version = "0.1.0"
+description = "Local calibrated Nanopore yield prediction dashboard"
+readme = "README.md"
+requires-python = ">=3.9,<3.14"
+dependencies = [
+  "joblib==1.5.3",
+  "numpy==2.0.2",
+  "scikit-learn==1.6.1",
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "Intended Audience :: Science/Research",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
+
+[project.optional-dependencies]
+minknow64 = ["minknow_api==6.4.3"]
+
+[project.scripts]
+nanopredict = "nanopredict.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+nanopredict = [
+  "static/*.html",
+  "static/*.css",
+  "static/*.js",
+  "data/*.json",
+  "data/*.csv",
+  "data/models/*.joblib",
+]
