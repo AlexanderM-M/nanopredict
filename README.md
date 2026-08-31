@@ -1,17 +1,20 @@
 # Nanopredict
 
 Nanopredict is a local browser dashboard for calibrated early prediction of
-Oxford Nanopore MinION run yield. It connects read-only to MinKNOW Core 6.10,
-collects live run statistics, and predicts final passed yield at 30, 60, and
-120 minutes. An anonymous historical replay mode is included for testing.
+Oxford Nanopore MinION run yield. It connects read-only to MinKNOW, adapts to
+the capabilities exposed by the installed Core version, and predicts final
+passed yield at 30, 60, and 120 minutes when the required statistics are
+available. A version-independent BAM fallback and an anonymous historical
+replay mode are included.
 
 > **Research-use prototype:** prospective validation is required. Predictions
 > and suspected-problem flags must not replace MinKNOW QC or operator judgement.
 
 ## Quick start from a clone
 
-Requirements: MinKNOW Core 6.10.x, Git, and 64-bit Python 3.9–3.12 on the
-sequencing computer. The live collector targets Core 6.10.12 and MinION.
+Requirements: MinKNOW, Git, and 64-bit Python 3.9–3.12 on the sequencing
+computer. The fully validated live collector targets Core 6.10.12 and MinION;
+other Core generations are detected and handled as described below.
 
 ```powershell
 git clone https://github.com/AlexanderM-M/nanopredict.git
@@ -102,10 +105,14 @@ device serials, names, or N-numbers.
 
 ## Live collector and safety
 
-The package pins `minknow_api` 6.10.3 because the first two client version
-components must match MinKNOW Core 6.10. The collector auto-detects an active
-MinION, verifies the Core version, and reads acquisition output, basecall
-boxplots, duty time, temperature, basecaller settings, and pore-scan results.
+The package includes `minknow_api` 6.10.3 as its validated baseline. Oxford
+Nanopore recommends matching the first two client-version components to Core,
+and notes that RPCs may change between minor versions. Nanopredict therefore
+checks capabilities instead of rejecting another version immediately, makes
+optional statistics non-fatal, and falls back to completed BAM batches when the
+essential API counters are incompatible. The validated collector reads
+acquisition output, basecall boxplots, duty time, temperature, basecaller
+settings, and pore-scan results.
 
 ### Live NanoDx CpG counter
 
@@ -132,6 +139,37 @@ locally so restarting Nanopredict does not recount completed BAM batches. Before
 using the counter operationally, compare its result on at least one completed
 local run with NanoDx's reported `num_features`.
 
+### MinKNOW version compatibility
+
+Nanopredict chooses the best available read-only path automatically:
+
+- **Validated API:** Core 6.10.x with the bundled 6.10 API client. This provides
+  live yield, calibrated final-yield predictions, QC features, and CpGs.
+- **Compatibility API:** another Core version that still exposes compatible
+  acquisition and statistics fields. Nanopredict uses the available fields and
+  labels the session as compatibility mode. Because Oxford Nanopore may change
+  the API between minor Core releases, this path should be checked locally
+  before operational use.
+- **BAM fallback:** if the statistics API cannot be read, Nanopredict discovers
+  completed `bam_pass` and `bam_fail` batches and continues to display passed
+  bases, target progress, yield ETA, NanoDx CpGs, and CpG ETA. A calibrated
+  final-yield prediction is not shown in this mode because the trained model
+  requires statistics that cannot be reconstructed reliably from BAM alone.
+
+The default BAM locations are detected automatically (`C:\data` on Windows and
+`/data` or `~/data` on Linux). If MinKNOW writes elsewhere, supply the directory
+when starting Nanopredict:
+
+```powershell
+nanopredict --bam-dir "D:\data"
+```
+
+Alternatively, set the `NANOPREDICT_BAM_DIR` environment variable. The selected
+mode, Core version, and API-client version are shown at the top of the dashboard.
+This capability-based approach covers a much wider range of Core releases, but
+it does not claim that every past or future undocumented API will provide all
+prediction inputs.
+
 It uses only documented getter and statistics-stream RPCs. It contains no code
 to start, stop, pause, unblock, change voltage, change temperature, or otherwise
 control a run. Run IDs, flow-cell IDs, sample names, and patient identifiers are
@@ -140,8 +178,11 @@ shown only in the local dashboard so an operator can select the correct device;
 Nanopredict does not persist or transmit them externally.
 
 By default, every active MinION position is monitored. To deliberately restrict
-monitoring to one position, launch with `nanopredict --position POSITION_NAME`.
-To show connection errors in the terminal, use `nanopredict --foreground`.
+API monitoring to one position, launch with
+`nanopredict --position POSITION_NAME`. BAM-only runs have anonymous `BAM-XXXXXX`
+labels and remain selectable in the dashboard because BAM output does not
+reliably expose the MinKNOW position name. To show connection errors in the
+terminal, use `nanopredict --foreground`.
 
 ## Development
 

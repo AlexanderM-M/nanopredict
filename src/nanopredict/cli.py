@@ -47,6 +47,7 @@ def _start_background(
     source: str,
     minknow_host: str,
     position: str | None,
+    bam_dir: str | None,
 ) -> int:
     if _is_running(port):
         print(f"Nanopredict is already running at {_url(port)}")
@@ -70,6 +71,8 @@ def _start_background(
     ]
     if position:
         command.extend(["--position", position])
+    if bam_dir:
+        command.extend(["--bam-dir", bam_dir])
     kwargs: dict = {
         "cwd": str(runtime),
         "stdin": subprocess.DEVNULL,
@@ -120,6 +123,13 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--minknow-host", default="localhost")
     parser.add_argument(
+        "--bam-dir",
+        help=(
+            "MinKNOW output directory for version-independent BAM fallback. "
+            "Usually detected automatically."
+        ),
+    )
+    parser.add_argument(
         "--position",
         help="Monitor only this MinKNOW position instead of all active positions",
     )
@@ -144,6 +154,7 @@ def main(argv: list[str] | None = None) -> int:
             source=source,
             minknow_host=args.minknow_host,
             position=args.position,
+            bam_dir=args.bam_dir,
         )
         return 0
     if args.command == "status":
@@ -172,6 +183,7 @@ def main(argv: list[str] | None = None) -> int:
             source=source,
             minknow_host=args.minknow_host,
             position=args.position,
+            bam_dir=args.bam_dir,
         )
         return 0
     return _start_background(
@@ -180,4 +192,5 @@ def main(argv: list[str] | None = None) -> int:
         source,
         args.minknow_host,
         args.position,
+        args.bam_dir,
     )

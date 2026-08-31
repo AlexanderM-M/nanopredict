@@ -1,15 +1,22 @@
-"""Read-only MinKNOW 6.10 feature collection for live MinION runs."""
+"""Adaptive, read-only feature collection for live MinION runs."""
 
 from __future__ import annotations
 
 import hashlib
+import importlib.metadata
 import math
 import re
 import threading
 import time
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Callable, Iterable
 
+from .bam_fallback import (
+    BamFallbackCollector,
+    BamFallbackUnavailable,
+    BamPosition,
+)
 from .diagnose_run import RunDecisionEngine
 from .nanodx_cpg import NanoDxCpgMonitor, NanoDxTargets, default_nanodx_targets
 from .replay import SUPPORTED_HORIZONS
@@ -18,6 +25,7 @@ from .replay import SUPPORTED_HORIZONS
 MINION_DEVICE_TYPES = {"MINION", "MINION_MK1C", "MINION_MK1D"}
 MODEL_DEVICE_TYPE = "MINION_MK1D"
 CALIBRATION_PURPOSE = 3  # minknow_api.acquisition_pb2.CALIBRATION in API 6.x
+VALIDATED_CORE_VERSION = (6, 10)
 
 
 class MinknowUnavailableError(RuntimeError):
@@ -38,6 +46,14 @@ def _number(value: Any) -> float | None:
     except (TypeError, ValueError):
         return None
     return result if math.isfinite(result) else None
+
+
+def _field_number(message: Any, *names: str) -> float | None:
+    for name in names:
+        value = _number(getattr(message, name, None))
+        if value is not None:
+            return value
+    return None
 
 
 def _ratio(numerator: float | None, denominator: float | None) -> float | None:
@@ -270,9 +286,23 @@ class MinknowCollector:
             from minknow_api.manager import Manager
         except ImportError as exc:
             raise MinknowUnavailableError(
-                "The MinKNOW 6.10 client is not installed. Reinstall Nanopredict."
+                "The MinKNOW API client is not installed. Reinstall Nanopredict."
             ) from exc
         return Manager(host=self.host)
+
+    @staticmethod
+    def client_version() -> str | None:
+        try:
+            return importlib.metadata.version("minknow_api")
+        except importlib.metadata.PackageNotFoundError:
+            return None
+
+    @staticmethod
+    def _version_pair(value: str | None) -> tuple[int, int] | None:
+        match = re.match(r"^(\d+)\.(\d+)", value or "")
+        if match is None:
+            return None
+        return int(match.group(1)), int(match.group(2))
 
     def active_positions(self) -> list[Any]:
         """Return every active MinION position allowed by the CLI filter."""
@@ -321,9 +351,24 @@ class MinknowCollector:
             ) from exc
         major = int(getattr(version.minknow, "major", 0))
         minor = int(getattr(version.minknow, "minor", 0))
-        if (major, minor) != (6, 10):
-            raise MinknowUnavailableError(
-                f"Connected MinKNOW Core is {major}.{minor}; this collector requires 6.10.x."
+        client_version = self.client_version()
+        api_matches_core = self._version_pair(client_version) == (major, minor)
+        collector_mode = (
+            "validated"
+            if api_matches_core and (major, minor) == VALIDATED_CORE_VERSION
+            else "compatibility"
+        )
+        compatibility_warning = None
+        if collector_mode == "compatibility":
+            compatibility_warning = (
+                f"Compatibility mode: MinKNOW Core {major}.{minor} is being read with "
+                f"minknow_api {client_version or 'unknown'}. "
+                + (
+                    "The API minor versions differ. "
+                    if not api_matches_core
+                    else "This Core generation has not been prospectively validated. "
+                )
+                + "Unsupported statistics fall back to completed BAM batches."
             )
         try:
             acquisition = connection.acquisition.get_current_acquisition_run(
@@ -342,7 +387,10 @@ class MinknowCollector:
             raise NoActiveRunError(
                 "MinION calibration detected; waiting for the sequencing acquisition."
             )
-        if not bool(getattr(acquisition.config_summary, "basecalling_enabled", False)):
+        if (
+            collector_mode == "validated"
+            and not bool(getattr(acquisition.config_summary, "basecalling_enabled", False))
+        ):
             raise MinknowUnavailableError(
                 "The active run has live basecalling disabled; passed-yield prediction "
                 "requires basecalling."
@@ -362,6 +410,17 @@ class MinknowCollector:
             output_path = str(getattr(protocol_run, "output_path", "")) or None
         except Exception:
             pass
+        reads_directory = str(getattr(config_summary, "reads_directory", "")) or None
+        output_root = reads_directory or output_path
+        bam_on_disk = False
+        if output_root:
+            try:
+                candidate = Path(output_root)
+                bam_on_disk = any(
+                    (candidate / name).is_dir() for name in ("bam_pass", "bam_fail")
+                ) or candidate.name.lower() in {"bam_pass", "bam_fail"}
+            except OSError:
+                pass
         return {
             "position": position,
             "connection": connection,
@@ -370,10 +429,18 @@ class MinknowCollector:
             "run_key": hashlib.sha256(run_id.encode("utf-8")).hexdigest()[:12],
             "elapsed_seconds": elapsed,
             "minknow_version": getattr(version.minknow, "full", f"{major}.{minor}"),
+            "api_client_version": client_version,
+            "collector_mode": collector_mode,
+            "compatibility_warning": compatibility_warning,
+            "prediction_available": True,
             "output_path": output_path,
-            "reads_directory": str(getattr(config_summary, "reads_directory", "")) or None,
-            "bam_reads_enabled": bool(getattr(config_summary, "bam_reads_enabled", False)),
-            "alignment_enabled": bool(getattr(config_summary, "alignment_enabled", False)),
+            "reads_directory": reads_directory,
+            "bam_reads_enabled": bool(
+                getattr(config_summary, "bam_reads_enabled", False)
+            ) or bam_on_disk,
+            "alignment_enabled": bool(
+                getattr(config_summary, "alignment_enabled", False)
+            ) or bam_on_disk,
             "alignment_reference_files": list(
                 getattr(config_summary, "alignment_reference_files", [])
             ),
@@ -394,7 +461,7 @@ class MinknowCollector:
             from minknow_api import statistics_pb2
         except ImportError as exc:
             raise MinknowUnavailableError(
-                "The MinKNOW 6.10 client is not installed."
+                "The MinKNOW API client is not installed."
             ) from exc
 
         selection = statistics_pb2.DataSelection(
@@ -430,31 +497,43 @@ class MinknowCollector:
             horizon_minutes,
             statistics_pb2.StreamBoxplotRequest.BASES_PER_SECOND,
         )
-        duty = _first_response(
-            connection.statistics.stream_duty_time(
-                acquisition_run_id=run_id,
-                data_selection=selection,
-                _timeout=self.rpc_timeout,
+        try:
+            duty = _first_response(
+                connection.statistics.stream_duty_time(
+                    acquisition_run_id=run_id,
+                    data_selection=selection,
+                    _timeout=self.rpc_timeout,
+                )
             )
-        )
+        except Exception:
+            duty = None
         temperature = self._temperature(connection, run_id, horizon_seconds, statistics_pb2)
-        basecaller = connection.analysis_configuration.get_basecaller_configuration(
-            run_id=run_id, _timeout=self.rpc_timeout
-        )
+        try:
+            basecaller = connection.analysis_configuration.get_basecaller_configuration(
+                run_id=run_id, _timeout=self.rpc_timeout
+            )
+        except Exception:
+            basecaller = None
 
-        estimated = _number(summary.estimated_selected_bases)
-        passed = _number(summary.basecalled_pass_bases)
-        failed = _number(summary.basecalled_fail_bases)
-        total_reads = _number(summary.read_count)
-        passed_reads = _number(summary.basecalled_pass_read_count)
-        failed_reads = _number(summary.basecalled_fail_read_count)
+        estimated = _field_number(summary, "estimated_selected_bases", "estimated_bases")
+        passed = _field_number(summary, "basecalled_pass_bases", "passed_bases")
+        failed = _field_number(summary, "basecalled_fail_bases", "failed_bases")
+        total_reads = _field_number(summary, "read_count", "total_read_count")
+        passed_reads = _field_number(
+            summary, "basecalled_pass_read_count", "passed_read_count"
+        )
+        failed_reads = _field_number(
+            summary, "basecalled_fail_read_count", "failed_read_count"
+        )
         observed_seconds = _number(latest.seconds)
         called = None if passed is None or failed is None else passed + failed
 
         row: dict[str, Any] = {
             "device_type": MODEL_DEVICE_TYPE,
             "device_is_promethion": 0,
-            "minimum_q_score_setting": _wrapped_number(basecaller.read_filtering, "min_qscore"),
+            "minimum_q_score_setting": _wrapped_number(
+                getattr(basecaller, "read_filtering", None), "min_qscore"
+            ),
             "planned_run_limit_hours": _planned_hours(acquisition),
             "series_resolution_seconds": _series_resolution(snapshots) or 1800.0,
             "observed_through_seconds": observed_seconds,
@@ -505,7 +584,7 @@ class MinknowCollector:
             from minknow_api import statistics_pb2
         except ImportError as exc:
             raise MinknowUnavailableError(
-                "The MinKNOW 6.10 client is not installed."
+                "The MinKNOW API client is not installed."
             ) from exc
 
         elapsed = max(int(float(context["elapsed_seconds"])), 0)
@@ -532,24 +611,37 @@ class MinknowCollector:
             )
         latest = max(snapshots, key=lambda snapshot: float(snapshot.seconds))
         summary = latest.yield_summary
+        passed = _field_number(summary, "basecalled_pass_bases", "passed_bases")
+        if passed is None:
+            raise MinknowUnavailableError(
+                "This MinKNOW API does not expose a compatible passed-base counter."
+            )
         return {
             "observed_seconds": float(latest.seconds),
-            "passed_bases": float(summary.basecalled_pass_bases),
-            "failed_bases": float(summary.basecalled_fail_bases),
-            "total_reads": float(summary.read_count),
-            "passed_reads": float(summary.basecalled_pass_read_count),
+            "passed_bases": passed,
+            "failed_bases": _field_number(
+                summary, "basecalled_fail_bases", "failed_bases"
+            ) or 0.0,
+            "total_reads": _field_number(summary, "read_count", "total_read_count")
+            or 0.0,
+            "passed_reads": _field_number(
+                summary, "basecalled_pass_read_count", "passed_read_count"
+            ) or 0.0,
         }
 
     def _boxplot(self, connection: Any, run_id: str, horizon: int, data_type: int) -> Any | None:
-        response = _first_response(
-            connection.statistics.stream_basecall_boxplots(
-                acquisition_run_id=run_id,
-                data_type=data_type,
-                dataset_width=10,
-                poll_time=60,
-                _timeout=self.rpc_timeout,
+        try:
+            response = _first_response(
+                connection.statistics.stream_basecall_boxplots(
+                    acquisition_run_id=run_id,
+                    data_type=data_type,
+                    dataset_width=10,
+                    poll_time=60,
+                    _timeout=self.rpc_timeout,
+                )
             )
-        )
+        except Exception:
+            return None
         datasets = list(getattr(response, "datasets", []))
         index = horizon // 10 - 1
         if 0 <= index < len(datasets):
@@ -563,15 +655,18 @@ class MinknowCollector:
         horizon_seconds: int,
         statistics_pb2: Any,
     ) -> tuple[float | None, float | None]:
-        response = _first_response(
-            connection.statistics.stream_temperature(
-                acquisition_run_id=run_id,
-                data_selection=statistics_pb2.DataSelection(
-                    start=0, step=60, end=horizon_seconds + 1
-                ),
-                _timeout=self.rpc_timeout,
+        try:
+            response = _first_response(
+                connection.statistics.stream_temperature(
+                    acquisition_run_id=run_id,
+                    data_selection=statistics_pb2.DataSelection(
+                        start=0, step=60, end=horizon_seconds + 1
+                    ),
+                    _timeout=self.rpc_timeout,
+                )
             )
-        )
+        except Exception:
+            return None, None
         packets = list(getattr(response, "temperatures", []))
         if not packets:
             return None, None
@@ -583,12 +678,99 @@ class MinknowCollector:
         return measured, 0.0
 
 
+class AdaptiveCollector:
+    """Use compatible MinKNOW RPCs, with a version-independent BAM fallback."""
+
+    def __init__(
+        self,
+        minknow: MinknowCollector,
+        bam: BamFallbackCollector,
+    ):
+        self.minknow = minknow
+        self.bam = bam
+
+    @staticmethod
+    def client_available() -> bool:
+        return MinknowCollector.client_available()
+
+    def active_positions(self) -> list[Any]:
+        try:
+            positions = self.minknow.active_positions()
+            # A Manager connection can succeed even when the position-level
+            # RPC schema is incompatible. Probe metadata before committing the
+            # supervisor to API mode so that this case also reaches BAM mode.
+            for position in positions:
+                self.minknow.inspect_position(position)
+            return positions
+        except NoActiveRunError:
+            raise
+        except MinknowUnavailableError as api_error:
+            try:
+                return self.bam.active_positions()
+            except BamFallbackUnavailable as fallback_error:
+                raise MinknowUnavailableError(
+                    f"{api_error} {fallback_error}"
+                ) from api_error
+
+    def inspect(self) -> dict[str, Any]:
+        active = self.active_positions()
+        if len(active) > 1:
+            raise NoActiveRunError(
+                "More than one MinION or BAM run is active; select a position."
+            )
+        return self.inspect_position(active[0])
+
+    def inspect_position(self, position: Any) -> dict[str, Any]:
+        if isinstance(position, BamPosition):
+            return self.bam.inspect_position(position)
+        return self.minknow.inspect_position(position)
+
+    def collect_live_progress(self, context: dict[str, Any]) -> dict[str, float]:
+        if context.get("collector_mode") == "bam_fallback":
+            return self.bam.collect_live_progress(context)
+        try:
+            return self.minknow.collect_live_progress(context)
+        except Exception as exc:
+            if not (context.get("reads_directory") or context.get("output_path")):
+                raise
+            context["collector_mode"] = "bam_fallback"
+            context["prediction_available"] = False
+            context["compatibility_warning"] = (
+                "The MinKNOW statistics API is incompatible; using completed BAM "
+                f"batches for live yield and CpGs ({type(exc).__name__})."
+            )
+            return self.bam.collect_live_progress(context)
+
+    def collect(
+        self, horizon_minutes: int, context: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
+        context = context or self.inspect()
+        if not context.get("prediction_available", True):
+            raise CheckpointNotReadyError(
+                "Calibrated prediction requires compatible MinKNOW statistics."
+            )
+        try:
+            return self.minknow.collect(horizon_minutes, context)
+        except CheckpointNotReadyError:
+            raise
+        except Exception as exc:
+            context["collector_mode"] = "bam_fallback"
+            context["prediction_available"] = False
+            context["compatibility_warning"] = (
+                "Some MinKNOW statistics required by the calibrated model are "
+                f"unavailable ({type(exc).__name__}); BAM monitoring remains active."
+            )
+            raise CheckpointNotReadyError(
+                "Calibrated prediction is unavailable in BAM fallback mode."
+            ) from exc
+
+
 class _PositionMonitor:
     """Retain checkpoint predictions for one MinKNOW position."""
 
     def __init__(
         self,
-        collector: MinknowCollector,
+        collector: Any,
         engine: RunDecisionEngine,
         poll_seconds: float = 20.0,
         start_thread: bool = True,
@@ -604,6 +786,9 @@ class _PositionMonitor:
         self._run_key: str | None = None
         self._elapsed_seconds = 0.0
         self._minknow_version: str | None = None
+        self._api_client_version: str | None = None
+        self._collector_mode = "connecting"
+        self._prediction_available = True
         self._rows: dict[int, dict[str, Any]] = {}
         self._assessments: dict[int, dict[str, Any]] = {}
         self._live_progress: dict[str, float] | None = None
@@ -669,7 +854,12 @@ class _PositionMonitor:
                 self._target_reached_seconds = None
             self._elapsed_seconds = elapsed
             self._minknow_version = context["minknow_version"]
-            self._warning = None
+            self._api_client_version = context.get("api_client_version")
+            self._collector_mode = context.get("collector_mode", "compatibility")
+            self._prediction_available = bool(
+                context.get("prediction_available", True)
+            )
+            self._warning = context.get("compatibility_warning")
 
         self._cpg_monitor.update_context(context)
 
@@ -715,14 +905,27 @@ class _PositionMonitor:
                     self._assessments[horizon] = assessment
 
         with self._lock:
+            self._collector_mode = context.get(
+                "collector_mode", self._collector_mode
+            )
+            self._prediction_available = bool(
+                context.get("prediction_available", self._prediction_available)
+            )
+            self._warning = context.get("compatibility_warning")
             current = max(self._rows, default=None)
             self._state = "complete" if current == SUPPORTED_HORIZONS[-1] else "running"
             next_horizon = next((h for h in SUPPORTED_HORIZONS if h not in self._rows), None)
-            self._message = (
-                "All early prediction checkpoints have been collected."
-                if next_horizon is None
-                else f"Collecting data for the {next_horizon}-minute checkpoint."
-            )
+            if not self._prediction_available:
+                self._message = (
+                    "BAM fallback active: live yield and NanoDx CpGs are available; "
+                    "calibrated final-yield prediction is unavailable."
+                )
+            else:
+                self._message = (
+                    "All early prediction checkpoints have been collected."
+                    if next_horizon is None
+                    else f"Collecting data for the {next_horizon}-minute checkpoint."
+                )
             self._last_update = datetime.now(timezone.utc).isoformat()
 
     def set_waiting(self, message: str) -> None:
@@ -732,6 +935,9 @@ class _PositionMonitor:
             self._warning = None
             self._run_key = None
             self._elapsed_seconds = 0.0
+            self._api_client_version = None
+            self._collector_mode = "waiting"
+            self._prediction_available = True
             self._rows.clear()
             self._assessments.clear()
             self._live_progress = None
@@ -847,7 +1053,10 @@ class _PositionMonitor:
                 "warning": self._warning,
                 "last_update": self._last_update,
                 "minknow_version": self._minknow_version,
-                "minknow_core_target": "6.10.x",
+                "api_client_version": self._api_client_version,
+                "collector_mode": self._collector_mode,
+                "prediction_available": self._prediction_available,
+                "minknow_core_target": "automatic with BAM fallback",
                 "device_target": "MinION",
                 "read_only": True,
             }
@@ -858,7 +1067,7 @@ class LiveMonitor:
 
     def __init__(
         self,
-        collector: MinknowCollector,
+        collector: Any,
         engine: RunDecisionEngine,
         poll_seconds: float = 20.0,
         start_thread: bool = True,
@@ -1013,6 +1222,8 @@ class LiveMonitor:
             "nanodx_cpg_state": nanodx_cpg.get("state"),
             "nanodx_cpg_rate_per_minute": nanodx_cpg.get("rate_cpg_per_minute"),
             "nanodx_cpg_eta_minutes": nanodx_cpg.get("eta_minutes"),
+            "collector_mode": status.get("collector_mode"),
+            "prediction_available": status.get("prediction_available", True),
             "message": status["message"],
         }
 
@@ -1056,7 +1267,10 @@ class LiveMonitor:
                 "warning": warning,
                 "last_update": last_update,
                 "minknow_version": None,
-                "minknow_core_target": "6.10.x",
+                "api_client_version": MinknowCollector.client_version(),
+                "collector_mode": "connecting",
+                "prediction_available": True,
+                "minknow_core_target": "automatic with BAM fallback",
                 "device_target": "MinION",
                 "read_only": True,
                 **common,

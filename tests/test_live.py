@@ -136,6 +136,8 @@ class LiveCollectorTests(unittest.TestCase):
         artifact = joblib.load(models_dir() / "calibrated_yield_30min.joblib")
         self.assertFalse(set(artifact["feature_columns"]) - set(row))
         self.assertEqual(context["minknow_version"], "6.10.12")
+        self.assertEqual(context["collector_mode"], "validated")
+        self.assertTrue(context["prediction_available"])
         self.assertTrue(context["bam_reads_enabled"])
         self.assertTrue(context["alignment_enabled"])
         self.assertEqual(context["alignment_reference_files"], ["hg38.fa"])
@@ -174,7 +176,7 @@ class LiveCollectorTests(unittest.TestCase):
         with self.assertRaisesRegex(NoActiveRunError, "Waiting"):
             collector.inspect()
 
-    def test_rejects_a_mismatched_core_client_version(self):
+    def test_uses_compatibility_mode_for_another_core_version(self):
         connection = FakeConnection(fake_run(), core_version=(6, 4, 9))
         position = SimpleNamespace(
             name="MN12345",
@@ -184,8 +186,38 @@ class LiveCollectorTests(unittest.TestCase):
         )
         manager = SimpleNamespace(flow_cell_positions=lambda: [position])
         collector = MinknowCollector(manager_factory=lambda **kwargs: manager)
-        with self.assertRaisesRegex(RuntimeError, "requires 6.10"):
-            collector.inspect()
+        context = collector.inspect()
+        row = collector.collect(30, context)
+        self.assertEqual(context["minknow_version"], "6.4.9")
+        self.assertEqual(context["collector_mode"], "compatibility")
+        self.assertIn("Compatibility mode", context["compatibility_warning"])
+        self.assertEqual(row["observed_passed_bases"], 900_000_000)
+
+    def test_optional_statistics_are_non_fatal_in_compatibility_mode(self):
+        connection = FakeConnection(fake_run(), core_version=(6, 4, 9))
+
+        def unavailable(**kwargs):
+            raise RuntimeError("RPC is not exposed by this Core version")
+
+        connection.statistics.stream_basecall_boxplots = unavailable
+        connection.statistics.stream_duty_time = unavailable
+        connection.statistics.stream_temperature = unavailable
+        connection.analysis_configuration = SimpleNamespace(
+            get_basecaller_configuration=unavailable
+        )
+        position = SimpleNamespace(
+            name="MN12345",
+            device_type="MINION_MK1D",
+            protocol_state="protocol_running",
+            connect=lambda: connection,
+        )
+        manager = SimpleNamespace(flow_cell_positions=lambda: [position])
+        collector = MinknowCollector(manager_factory=lambda **kwargs: manager)
+        row = collector.collect(30, collector.inspect())
+        self.assertEqual(row["observed_passed_bases"], 900_000_000)
+        self.assertIsNone(row["observed_qscore_mode"])
+        self.assertIsNone(row["observed_temperature"])
+        self.assertIsNone(row["minimum_q_score_setting"])
 
     def test_live_monitor_emits_a_calibrated_checkpoint(self):
         engine = RunDecisionEngine(

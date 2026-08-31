@@ -138,8 +138,25 @@ function setConnected(connected) {
   elements.connectionText.textContent = connected ? 'Dashboard online' : 'Reconnecting';
 }
 
-function configureMode(mode, version, activeCount = 0) {
+function configureMode(
+  mode,
+  version,
+  activeCount = 0,
+  collectorMode = 'connecting',
+  apiClientVersion = null,
+) {
   const live = mode === 'minknow';
+  const modeLabel = collectorMode === 'validated'
+    ? 'Validated API'
+    : collectorMode === 'compatibility'
+      ? 'Compatibility API'
+      : collectorMode === 'bam_fallback'
+        ? 'BAM fallback'
+        : 'Connecting';
+  const versionLabel = version && version !== 'API unavailable'
+    ? `Core ${version}`
+    : 'MinKNOW API unavailable';
+  const clientLabel = apiClientVersion ? ` · client ${apiClientVersion}` : '';
   currentMode = mode;
   elements.sampleControl.classList.toggle('hidden', live);
   elements.positionControl.classList.toggle('hidden', !live);
@@ -150,10 +167,12 @@ function configureMode(mode, version, activeCount = 0) {
   elements.speedControl.classList.toggle('hidden', live);
   elements.advance.parentElement.classList.toggle('hidden', live);
   elements.setupTitle.textContent = live ? 'Monitor a run' : 'Replay a run';
-  elements.sourcePill.textContent = live ? 'Read-only' : 'Anonymous data';
+  elements.sourcePill.textContent = live && collectorMode === 'bam_fallback'
+    ? 'BAM fallback'
+    : live ? 'Read-only' : 'Anonymous data';
   elements.modeName.textContent = live ? 'Live MinKNOW' : 'Historical replay';
   elements.modeDetail.textContent = live
-    ? `${version || 'MinKNOW 6.10'} · ${activeCount} active position${activeCount === 1 ? '' : 's'} · local`
+    ? `${versionLabel}${clientLabel} · ${modeLabel} · ${activeCount} active position${activeCount === 1 ? '' : 's'} · local`
     : 'Anonymous MinION runs · accelerated';
   elements.start.textContent = live ? 'Apply target' : 'Start replay';
   elements.runMode.textContent = live ? 'Live' : 'Replay';
@@ -195,6 +214,8 @@ function renderPositions(data) {
       : '';
     detail.textContent = position.passed_bases !== null && position.passed_bases !== undefined
       ? `${compactNumber(position.passed_bases)} bases · ${number(position.progress_percent, 0)}% of target${cpgSummary}`
+      : position.prediction_available === false
+        ? `BAM monitoring${cpgSummary}`
       : position.current_horizon_minutes
         ? `${position.current_horizon_minutes}-min prediction · ${yieldText(position.prediction_gb)}${cpgSummary}`
       : position.state === 'waiting'
@@ -323,7 +344,13 @@ function renderCpgProgress(data) {
 }
 
 function renderStatus(data) {
-  configureMode(data.mode, data.minknow_version, data.active_position_count || 0);
+  configureMode(
+    data.mode,
+    data.minknow_version,
+    data.active_position_count || 0,
+    data.collector_mode,
+    data.api_client_version,
+  );
   renderPositions(data);
   const live = data.mode === 'minknow';
   if (live && data.position_name && data.position_name !== displayedPosition) {
@@ -363,14 +390,20 @@ function renderStatus(data) {
   const assessment = data.assessment;
   if (!assessment) {
     elements.statusBadge.className = 'status-badge pending';
-    elements.statusBadge.querySelector('strong').textContent = 'COLLECTING';
+    elements.statusBadge.querySelector('strong').textContent = data.prediction_available === false
+      ? 'BAM MODE'
+      : 'COLLECTING';
     elements.prediction.textContent = '—';
     elements.predictionUnit.textContent = 'GB';
-    elements.interval.textContent = `Next prediction at ${data.next_horizon_minutes} minutes`;
+    elements.interval.textContent = data.prediction_available === false
+      ? 'Unavailable without compatible MinKNOW statistics'
+      : `Next prediction at ${data.next_horizon_minutes} minutes`;
     elements.probability.textContent = '—';
     elements.probabilityRing.style.setProperty('--probability', '0deg');
-    elements.confidence.textContent = 'Waiting';
-    elements.explanation.textContent = 'Prediction available at 30 minutes.';
+    elements.confidence.textContent = data.prediction_available === false ? 'BAM fallback' : 'Waiting';
+    elements.explanation.textContent = data.prediction_available === false
+      ? 'Live passed yield and NanoDx CpGs remain available.'
+      : 'Prediction available at 30 minutes.';
     elements.problems.replaceChildren();
   } else {
     const prediction = assessment.prediction;

@@ -67,6 +67,10 @@ class ReplayCatalogTests(unittest.TestCase):
         self.assertNotIn('class="timeline panel"', html)
         self.assertNotIn("timelineFill", javascript)
         self.assertNotIn("function renderTimeline", javascript)
+        self.assertIn("Compatibility API", javascript)
+        self.assertIn("BAM fallback", javascript)
+        self.assertIn("Live passed yield and NanoDx CpGs remain available", javascript)
+        self.assertNotIn("MinKNOW 6.10 · MinION profile", html)
 
     def test_prediction_display_uses_adaptive_yield_units(self):
         javascript = (static_dir() / "app.js").read_text(encoding="utf-8")
