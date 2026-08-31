@@ -1,2 +1,3 @@
+include THIRD_PARTY_NOTICES.md
 recursive-include src/nanopredict/static *.html *.css *.js
-recursive-include src/nanopredict/data *.json *.csv *.joblib
+recursive-include src/nanopredict/data *.json *.csv *.joblib *.gz
