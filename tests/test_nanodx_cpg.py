@@ -11,6 +11,8 @@ from nanopredict.nanodx_cpg import (
     NanoDxCpgCounter,
     NanoDxCpgMonitor,
     NanoDxTargets,
+    _BGZF_EOF,
+    _bam_is_complete,
     _validate_hg38_alignment,
     modification_confidences,
 )
@@ -80,6 +82,27 @@ class NanoDxTargetTests(unittest.TestCase):
         alignment.lengths = (249_250_621,)
         with self.assertRaisesRegex(ValueError, "not aligned.*hg38"):
             _validate_hg38_alignment(alignment)
+
+    def test_bam_completion_requires_the_standard_28_byte_bgzf_marker(self):
+        expected = bytes.fromhex(
+            "1f8b08040000000000ff0600424302001b0003000000000000000000"
+        )
+        self.assertEqual(len(_BGZF_EOF), 28)
+        self.assertEqual(_BGZF_EOF, expected)
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            complete = root / "complete.bam"
+            complete.write_bytes(b"BAM payload" + expected)
+            self.assertTrue(_bam_is_complete(complete))
+
+            truncated = root / "truncated.bam"
+            truncated.write_bytes(b"BAM payload" + expected[:-1])
+            self.assertFalse(_bam_is_complete(truncated))
+
+            still_open = root / "still-open.bam"
+            still_open.write_bytes(b"BAM payload")
+            self.assertFalse(_bam_is_complete(still_open))
 
     def test_mm_ml_confidence_and_reverse_alignment_are_counted(self):
         self.assertEqual(modification_confidences(FakeRead(15_864)), {10: 230})
