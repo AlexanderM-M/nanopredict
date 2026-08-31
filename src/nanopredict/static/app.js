@@ -35,6 +35,12 @@ const elements = {
   remainingBases: document.getElementById('remainingBasesValue'),
   liveRate: document.getElementById('liveRateValue'),
   eta: document.getElementById('etaValue'),
+  cpgProgressPanel: document.getElementById('cpgProgressPanel'),
+  cpgProgressBadge: document.getElementById('cpgProgressBadge'),
+  cpgCount: document.getElementById('cpgCountValue'),
+  cpgProgressMessage: document.getElementById('cpgProgressMessage'),
+  cpgProgressFill: document.getElementById('cpgProgressFill'),
+  cpgProgressPercent: document.getElementById('cpgProgressPercent'),
   timelineFill: document.getElementById('timelineFill'),
   prediction: document.getElementById('predictionValue'),
   predictionUnit: document.getElementById('predictionUnit'),
@@ -137,6 +143,7 @@ function configureMode(mode, version, activeCount = 0) {
   elements.sampleControl.classList.toggle('hidden', live);
   elements.positionControl.classList.toggle('hidden', !live);
   elements.liveProgressPanel.classList.toggle('hidden', !live);
+  elements.cpgProgressPanel.classList.toggle('hidden', !live);
   elements.observedCard.classList.toggle('hidden', live);
   elements.metricGrid.classList.toggle('live', live);
   elements.speedControl.classList.toggle('hidden', live);
@@ -179,13 +186,16 @@ function renderPositions(data) {
     const name = document.createElement('strong');
     name.textContent = position.position_name;
     const detail = document.createElement('small');
+    const cpgSummary = position.nanodx_cpg_count !== null && position.nanodx_cpg_count !== undefined
+      ? ` · ${position.nanodx_cpg_count}/${position.nanodx_cpg_threshold || 180} CpGs`
+      : '';
     detail.textContent = position.passed_bases !== null && position.passed_bases !== undefined
-      ? `${compactNumber(position.passed_bases)} bases · ${number(position.progress_percent, 0)}% of target`
+      ? `${compactNumber(position.passed_bases)} bases · ${number(position.progress_percent, 0)}% of target${cpgSummary}`
       : position.current_horizon_minutes
-        ? `${position.current_horizon_minutes}-min prediction · ${yieldText(position.prediction_gb)}`
+        ? `${position.current_horizon_minutes}-min prediction · ${yieldText(position.prediction_gb)}${cpgSummary}`
       : position.state === 'waiting'
         ? 'Waiting for acquisition'
-        : `Next prediction: ${position.next_horizon_minutes || 30} min`;
+        : `Next prediction: ${position.next_horizon_minutes || 30} min${cpgSummary}`;
     copy.append(name, detail);
 
     const state = document.createElement('span');
@@ -266,6 +276,36 @@ function renderLiveProgress(data) {
     : duration(progress.eta_minutes);
 }
 
+function renderCpgProgress(data) {
+  if (data.mode !== 'minknow') return;
+  const cpg = data.nanodx_cpg;
+  if (!cpg) {
+    elements.cpgProgressBadge.className = 'target-status';
+    elements.cpgProgressBadge.textContent = 'COLLECTING';
+    elements.cpgCount.textContent = '0';
+    elements.cpgProgressMessage.textContent = 'Waiting for a completed BAM batch';
+    elements.cpgProgressFill.classList.remove('reached');
+    elements.cpgProgressFill.style.width = '0%';
+    elements.cpgProgressPercent.textContent = '0%';
+    return;
+  }
+
+  const reached = Boolean(cpg.threshold_reached);
+  const needsSetup = ['unavailable', 'error'].includes(cpg.state);
+  elements.cpgProgressBadge.className = `target-status ${reached ? 'reached' : needsSetup ? 'error' : ''}`;
+  elements.cpgProgressBadge.textContent = reached
+    ? 'THRESHOLD REACHED'
+    : needsSetup
+      ? 'CHECK SETUP'
+      : 'COLLECTING';
+  elements.cpgCount.textContent = bases(cpg.count);
+  elements.cpgProgressMessage.textContent = cpg.message;
+  elements.cpgProgressFill.classList.toggle('reached', reached);
+  elements.cpgProgressFill.classList.toggle('error', needsSetup);
+  elements.cpgProgressFill.style.width = `${Math.min(Number(cpg.progress_percent) || 0, 100)}%`;
+  elements.cpgProgressPercent.textContent = `${number(cpg.progress_percent, 0)}%`;
+}
+
 function renderTimeline(horizon) {
   const positions = { null: 0, 30: 33.333, 60: 66.666, 120: 100 };
   elements.timelineFill.style.width = `${positions[horizon] || 0}%`;
@@ -306,6 +346,7 @@ function renderStatus(data) {
   elements.stop.disabled = live || data.state === 'complete' || data.state === 'stopped';
   elements.start.textContent = live ? 'Apply target' : data.state === 'running' ? 'Restart replay' : 'Start replay';
   renderLiveProgress(data);
+  renderCpgProgress(data);
   renderTimeline(data.current_horizon_minutes);
 
   const obs = data.observations;

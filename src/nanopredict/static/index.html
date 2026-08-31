@@ -116,6 +116,17 @@
             </dl>
           </section>
 
+          <section id="cpgProgressPanel" class="panel cpg-progress hidden">
+            <div class="live-progress-heading">
+              <div><p class="eyebrow">NANODX CLASSIFIER CPGS</p><h3>Report readiness</h3></div>
+              <span id="cpgProgressBadge" class="target-status">COLLECTING</span>
+            </div>
+            <div class="cpg-value"><strong id="cpgCountValue">0</strong><span>/ 180 NanoDx CpGs</span></div>
+            <p id="cpgProgressMessage" class="live-gb-value">Waiting for a completed BAM batch</p>
+            <div class="yield-progress-track"><div id="cpgProgressFill" class="yield-progress-fill"></div></div>
+            <div class="yield-progress-labels"><span>Capper model · hg38</span><strong id="cpgProgressPercent">0%</strong></div>
+          </section>
+
           <section class="timeline panel">
             <div class="timeline-labels"><span>Start</span><span>30 min</span><span>60 min</span><span>120 min</span></div>
             <div class="timeline-track">

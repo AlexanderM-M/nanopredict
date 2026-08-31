@@ -11,6 +11,7 @@ from datetime import datetime, timezone
 from typing import Any, Callable, Iterable
 
 from .diagnose_run import RunDecisionEngine
+from .nanodx_cpg import NanoDxCpgMonitor, NanoDxTargets, default_nanodx_targets
 from .replay import SUPPORTED_HORIZONS
 
 
@@ -351,6 +352,16 @@ class MinknowCollector:
             started = _timestamp_seconds(getattr(acquisition, "data_read_start_time", None))
         elapsed = 0.0 if started is None else max(time.time() - started, 0.0)
         run_id = str(acquisition.run_id)
+        config_summary = acquisition.config_summary
+        output_path = None
+        try:
+            protocol_response = connection.protocol.get_current_protocol_run(
+                _timeout=self.rpc_timeout
+            )
+            protocol_run = getattr(protocol_response, "run_info", protocol_response)
+            output_path = str(getattr(protocol_run, "output_path", "")) or None
+        except Exception:
+            pass
         return {
             "position": position,
             "connection": connection,
@@ -359,6 +370,13 @@ class MinknowCollector:
             "run_key": hashlib.sha256(run_id.encode("utf-8")).hexdigest()[:12],
             "elapsed_seconds": elapsed,
             "minknow_version": getattr(version.minknow, "full", f"{major}.{minor}"),
+            "output_path": output_path,
+            "reads_directory": str(getattr(config_summary, "reads_directory", "")) or None,
+            "bam_reads_enabled": bool(getattr(config_summary, "bam_reads_enabled", False)),
+            "alignment_enabled": bool(getattr(config_summary, "alignment_enabled", False)),
+            "alignment_reference_files": list(
+                getattr(config_summary, "alignment_reference_files", [])
+            ),
         }
 
     def collect(
@@ -574,6 +592,8 @@ class _PositionMonitor:
         engine: RunDecisionEngine,
         poll_seconds: float = 20.0,
         start_thread: bool = True,
+        cpg_targets: NanoDxTargets | None = None,
+        start_cpg_thread: bool = True,
     ):
         self.collector = collector
         self.engine = engine
@@ -593,6 +613,11 @@ class _PositionMonitor:
         self._message = "Connecting to local MinKNOW."
         self._last_update: str | None = None
         self._warning: str | None = None
+        self._cpg_monitor = NanoDxCpgMonitor(
+            cpg_targets or default_nanodx_targets(),
+            poll_seconds=poll_seconds,
+            start_thread=start_cpg_thread,
+        )
         self._thread: threading.Thread | None = None
         if start_thread:
             self._thread = threading.Thread(target=self._run, daemon=True, name="nanopredict-live")
@@ -645,6 +670,8 @@ class _PositionMonitor:
             self._elapsed_seconds = elapsed
             self._minknow_version = context["minknow_version"]
             self._warning = None
+
+        self._cpg_monitor.update_context(context)
 
         try:
             live_progress = self.collector.collect_live_progress(context)
@@ -710,6 +737,7 @@ class _PositionMonitor:
             self._live_progress = None
             self._progress_history.clear()
             self._target_reached_seconds = None
+            self._cpg_monitor.set_waiting()
             self._last_update = datetime.now(timezone.utc).isoformat()
 
     def set_error(self, message: str) -> None:
@@ -723,6 +751,7 @@ class _PositionMonitor:
         self._stop_event.set()
         if self._thread and self._thread.is_alive():
             self._thread.join(timeout=min(self.poll_seconds + 1, 5))
+        self._cpg_monitor.close()
 
     def status(self) -> dict[str, Any]:
         with self._lock:
@@ -798,6 +827,7 @@ class _PositionMonitor:
                 "next_horizon_minutes": next_horizon,
                 "observations": observations,
                 "live_progress": live_progress,
+                "nanodx_cpg": self._cpg_monitor.status(),
                 "assessment": assessment,
                 "history": [
                     {
@@ -844,6 +874,8 @@ class LiveMonitor:
         self._message = "Connecting to local MinKNOW."
         self._warning: str | None = None
         self._last_update: str | None = None
+        self._start_background_workers = start_thread
+        self._cpg_targets = default_nanodx_targets()
         self._thread: threading.Thread | None = None
         if start_thread:
             self._thread = threading.Thread(
@@ -863,11 +895,14 @@ class LiveMonitor:
             positions = self.collector.active_positions()
         except NoActiveRunError as exc:
             with self._lock:
+                monitors = list(self._monitors.values())
                 self._monitors.clear()
                 self._state = "waiting"
                 self._message = str(exc)
                 self._warning = None
                 self._last_update = datetime.now(timezone.utc).isoformat()
+            for monitor in monitors:
+                monitor.close()
             return
         except Exception as exc:
             error_message = str(exc) or type(exc).__name__
@@ -885,9 +920,12 @@ class LiveMonitor:
             str(getattr(position, "name", "Unknown position")) for position in positions
         }
         with self._lock:
+            removed = []
             for name in list(self._monitors):
                 if name not in active_names:
-                    del self._monitors[name]
+                    removed.append(self._monitors.pop(name))
+        for monitor in removed:
+            monitor.close()
 
         for position in positions:
             name = str(getattr(position, "name", "Unknown position"))
@@ -899,6 +937,8 @@ class LiveMonitor:
                         self.engine,
                         poll_seconds=self.poll_seconds,
                         start_thread=False,
+                        cpg_targets=self._cpg_targets,
+                        start_cpg_thread=self._start_background_workers,
                     )
                     monitor.configure(self._default_target_gb)
                     self._monitors[name] = monitor
@@ -941,12 +981,18 @@ class LiveMonitor:
         self._stop_event.set()
         if self._thread and self._thread.is_alive():
             self._thread.join(timeout=min(self.poll_seconds + 1, 5))
+        with self._lock:
+            monitors = list(self._monitors.values())
+            self._monitors.clear()
+        for monitor in monitors:
+            monitor.close()
 
     @staticmethod
     def _position_summary(name: str, status: dict[str, Any]) -> dict[str, Any]:
         assessment = status.get("assessment") or {}
         prediction = assessment.get("prediction") or {}
         live_progress = status.get("live_progress") or {}
+        nanodx_cpg = status.get("nanodx_cpg") or {}
         return {
             "position_name": name,
             "state": status["state"],
@@ -961,6 +1007,10 @@ class LiveMonitor:
             "progress_percent": live_progress.get("progress_percent"),
             "eta_minutes": live_progress.get("eta_minutes"),
             "target_reached": bool(live_progress.get("target_reached")),
+            "nanodx_cpg_count": nanodx_cpg.get("count"),
+            "nanodx_cpg_threshold": nanodx_cpg.get("threshold"),
+            "nanodx_cpg_reached": bool(nanodx_cpg.get("threshold_reached")),
+            "nanodx_cpg_state": nanodx_cpg.get("state"),
             "message": status["message"],
         }
 

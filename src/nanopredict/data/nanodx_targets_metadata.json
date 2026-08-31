@@ -1,0 +1,14 @@
+{
+  "profile": "Capper_et_al",
+  "source_assembly": "hg19",
+  "monitor_assembly": "hg38",
+  "source_model_features": 366263,
+  "mapped_monitor_features": 366217,
+  "unmapped_features": 46,
+  "institute_threshold": 180,
+  "nanodx_commit": "7f2579aa1e120a6057628c289467643e65fb0e4d",
+  "nanodx_mapping_sha256": "510841c1f5e9f1c93f3cb23a0778577f9fe6b21fb7e07289e07f858706fb5f9e",
+  "capper_model_sha256": "8ae3d464832ad4755e429e67833de17916c2f54ae2fdbfb6eff33fdcd78e626d",
+  "ucsc_hg19_to_hg38_chain_sha256": "5c0598e500ceb5a78c73086929e8ef993aec309bcafb595139b53d440b125a1d",
+  "generated_target_sha256": "6d2ad818b2b63bc4f6b5320b2348fcbc2d4198f2e173318a23f84e5aaaef6e8d"
+}

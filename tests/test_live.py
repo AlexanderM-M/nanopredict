@@ -99,6 +99,10 @@ class FakeConnection:
 def fake_run(run_id="private-run-id", elapsed_seconds=1805):
     acquisition = acquisition_pb2.AcquisitionRunInfo(run_id=run_id)
     acquisition.config_summary.basecalling_enabled = True
+    acquisition.config_summary.bam_reads_enabled = True
+    acquisition.config_summary.alignment_enabled = True
+    acquisition.config_summary.alignment_reference_files.append("hg38.fa")
+    acquisition.config_summary.reads_directory = "C:\\data\\reads"
     acquisition.start_time.FromSeconds(int(time.time()) - elapsed_seconds)
     acquisition.data_read_start_time.FromSeconds(int(time.time()) - elapsed_seconds)
     runtime = wrappers_pb2.UInt64Value(value=24 * 3600)
@@ -132,6 +136,10 @@ class LiveCollectorTests(unittest.TestCase):
         artifact = joblib.load(models_dir() / "calibrated_yield_30min.joblib")
         self.assertFalse(set(artifact["feature_columns"]) - set(row))
         self.assertEqual(context["minknow_version"], "6.10.12")
+        self.assertTrue(context["bam_reads_enabled"])
+        self.assertTrue(context["alignment_enabled"])
+        self.assertEqual(context["alignment_reference_files"], ["hg38.fa"])
+        self.assertEqual(context["reads_directory"], "C:\\data\\reads")
         self.assertNotIn("private-run-id", context["run_key"])
         self.assertAlmostEqual(row["observed_passed_base_fraction"], 0.9)
         self.assertAlmostEqual(row["observed_average_passed_bases_per_hour"], 1.8e9)

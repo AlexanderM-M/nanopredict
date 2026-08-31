@@ -121,6 +121,7 @@ button:disabled { opacity: .4; cursor: not-allowed; }
 .live-progress-heading h3 { margin: 0; font-size: 20px; }
 .target-status { padding: 7px 10px; color: var(--accent-dark); background: var(--accent-soft); border-radius: 999px; font-size: 9px; font-weight: 800; letter-spacing: .06em; }
 .target-status.reached { color: white; background: var(--good); }
+.target-status.error { color: var(--bad); background: var(--bad-soft); }
 .live-base-value { margin-top: 25px; display: flex; align-items: baseline; gap: 9px; }
 .live-base-value strong { font-size: clamp(34px, 5vw, 54px); line-height: 1; letter-spacing: -.045em; }
 .live-base-value span { color: var(--muted); font-size: 13px; font-weight: 650; }
@@ -128,12 +129,17 @@ button:disabled { opacity: .4; cursor: not-allowed; }
 .yield-progress-track { height: 11px; overflow: hidden; background: #e4ecea; border-radius: 999px; }
 .yield-progress-fill { width: 0; height: 100%; background: var(--accent); border-radius: inherit; transition: width .5s ease; }
 .yield-progress-fill.reached { background: var(--good); }
+.yield-progress-fill.error { background: var(--bad); }
 .yield-progress-labels { margin-top: 8px; display: flex; justify-content: space-between; gap: 16px; color: var(--muted); font-size: 10px; }
 .yield-progress-labels strong { color: var(--ink); }
 .live-progress-metrics { margin: 23px 0 0; display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--line); }
 .live-progress-metrics div { padding: 17px 15px 0 0; }
 .live-progress-metrics dt { margin-bottom: 6px; color: var(--muted); font-size: 10px; }
 .live-progress-metrics dd { margin: 0; font-size: 13px; font-weight: 750; }
+.cpg-progress { padding: 24px; }
+.cpg-value { margin-top: 23px; display: flex; align-items: baseline; gap: 9px; }
+.cpg-value strong { font-size: clamp(34px, 5vw, 50px); line-height: 1; letter-spacing: -.045em; }
+.cpg-value span { color: var(--muted); font-size: 13px; font-weight: 650; }
 .status-badge { min-width: 126px; padding: 11px 13px; display: flex; justify-content: center; align-items: center; gap: 8px; border-radius: 10px; font-size: 11px; letter-spacing: .05em; background: #edf2f1; color: #60706f; }
 .status-badge span { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
 .status-badge.good { color: var(--good); background: var(--good-soft); }

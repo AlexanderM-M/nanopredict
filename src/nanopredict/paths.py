@@ -36,6 +36,15 @@ def replay_features() -> Path:
     )
 
 
+def nanodx_cpg_targets() -> Path:
+    return Path(
+        os.environ.get(
+            "NANOPREDICT_NANODX_TARGETS",
+            DATA_DIR / "nanodx_capper_hg38.tsv.gz",
+        )
+    )
+
+
 def static_dir() -> Path:
     return PACKAGE_DIR / "static"
 
