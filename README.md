@@ -152,3 +152,10 @@ nanopredict --foreground --no-browser
 
 The server uses Python's standard HTTP library and no external web framework.
 Models and all dashboard assets are installed inside the Python package.
+
+## License
+
+Nanopredict is free software licensed under the
+[GNU General Public License version 3 only](LICENSE). It is distributed without
+any warranty. Third-party data provenance and licensing information are listed
+in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
