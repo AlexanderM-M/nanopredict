@@ -51,6 +51,14 @@ class ReplayCatalogTests(unittest.TestCase):
         collector.feed(html)
         self.assertFalse(referenced - collector.ids)
 
+    def test_dashboard_copy_is_concise(self):
+        html = (static_dir() / "index.html").read_text(encoding="utf-8")
+        javascript = (static_dir() / "app.js").read_text(encoding="utf-8")
+        self.assertNotIn("Calibrated yield forecasts", html)
+        self.assertNotIn("item.suggested_check", javascript)
+        self.assertIn("LIVE PASSED YIELD", html)
+        self.assertIn("TARGET REACHED", javascript)
+
 
 class ReplaySessionTests(unittest.TestCase):
     @classmethod

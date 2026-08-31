@@ -6,6 +6,7 @@ const elements = {
   positionControl: document.getElementById('positionControl'),
   positionList: document.getElementById('positionList'),
   target: document.getElementById('targetInput'),
+  targetEquivalent: document.getElementById('targetEquivalent'),
   speed: document.getElementById('speedSelect'),
   speedControl: document.getElementById('speedControl'),
   setupTitle: document.getElementById('setupTitle'),
@@ -24,12 +25,24 @@ const elements = {
   runMode: document.getElementById('runMode'),
   runMessage: document.getElementById('runMessage'),
   statusBadge: document.getElementById('statusBadge'),
+  liveProgressPanel: document.getElementById('liveProgressPanel'),
+  liveProgressBadge: document.getElementById('liveProgressBadge'),
+  liveBaseValue: document.getElementById('liveBaseValue'),
+  liveGbValue: document.getElementById('liveGbValue'),
+  yieldProgressFill: document.getElementById('yieldProgressFill'),
+  yieldProgressCopy: document.getElementById('yieldProgressCopy'),
+  yieldProgressPercent: document.getElementById('yieldProgressPercent'),
+  remainingBases: document.getElementById('remainingBasesValue'),
+  liveRate: document.getElementById('liveRateValue'),
+  eta: document.getElementById('etaValue'),
   timelineFill: document.getElementById('timelineFill'),
   prediction: document.getElementById('predictionValue'),
   interval: document.getElementById('intervalValue'),
   probabilityRing: document.getElementById('probabilityRing'),
   probability: document.getElementById('probabilityValue'),
   targetValue: document.getElementById('targetValue'),
+  metricGrid: document.getElementById('metricGrid'),
+  observedCard: document.getElementById('observedCard'),
   observed: document.getElementById('observedValue'),
   reads: document.getElementById('readsValue'),
   temperature: document.getElementById('temperatureValue'),
@@ -59,6 +72,25 @@ function compactNumber(value) {
   return new Intl.NumberFormat(undefined, { notation: 'compact', maximumFractionDigits: 1 }).format(Number(value));
 }
 
+function bases(value) {
+  if (value === null || value === undefined || !Number.isFinite(Number(value))) return '—';
+  return Math.round(Number(value)).toLocaleString();
+}
+
+function duration(minutes) {
+  if (minutes === null || minutes === undefined || !Number.isFinite(Number(minutes))) return '—';
+  if (minutes < 1) return '<1 min';
+  if (minutes < 120) return `${Math.round(minutes)} min`;
+  return `${number(minutes / 60, 1)} h`;
+}
+
+function renderTargetEquivalent() {
+  const target = Number(elements.target.value);
+  elements.targetEquivalent.textContent = Number.isFinite(target) && target > 0
+    ? `${bases(target * 1e9)} bases`
+    : 'Enter a positive target';
+}
+
 function showToast(message) {
   elements.toast.textContent = message;
   elements.toast.classList.add('visible');
@@ -83,6 +115,9 @@ function configureMode(mode, version, activeCount = 0) {
   currentMode = mode;
   elements.sampleControl.classList.toggle('hidden', live);
   elements.positionControl.classList.toggle('hidden', !live);
+  elements.liveProgressPanel.classList.toggle('hidden', !live);
+  elements.observedCard.classList.toggle('hidden', live);
+  elements.metricGrid.classList.toggle('live', live);
   elements.speedControl.classList.toggle('hidden', live);
   elements.advance.parentElement.classList.toggle('hidden', live);
   elements.setupTitle.textContent = live ? 'Monitor a run' : 'Replay a run';
@@ -123,8 +158,10 @@ function renderPositions(data) {
     const name = document.createElement('strong');
     name.textContent = position.position_name;
     const detail = document.createElement('small');
-    detail.textContent = position.current_horizon_minutes
-      ? `${position.current_horizon_minutes}-min prediction · ${number(position.prediction_gb)} GB`
+    detail.textContent = position.passed_bases !== null && position.passed_bases !== undefined
+      ? `${compactNumber(position.passed_bases)} bases · ${number(position.progress_percent, 0)}% of target`
+      : position.current_horizon_minutes
+        ? `${position.current_horizon_minutes}-min prediction · ${number(position.prediction_gb)} GB`
       : position.state === 'waiting'
         ? 'Waiting for acquisition'
         : `Next prediction: ${position.next_horizon_minutes || 30} min`;
@@ -133,7 +170,9 @@ function renderPositions(data) {
     const state = document.createElement('span');
     const label = ['error', 'waiting'].includes(position.state)
       ? position.state
-      : position.assessment_status || position.state || 'connecting';
+      : position.target_reached
+        ? 'reached'
+        : position.assessment_status || position.state || 'connecting';
     state.className = `position-state ${String(label).toLowerCase()}`;
     state.textContent = String(label).toUpperCase();
     button.append(copy, state);
@@ -163,12 +202,47 @@ function renderProblems(items) {
     const content = document.createElement('div');
     const title = document.createElement('h4');
     title.textContent = item.title;
-    const detail = document.createElement('p');
-    detail.textContent = item.suggested_check;
-    content.append(title, detail);
+    content.append(title);
     row.append(marker, content);
     elements.problems.append(row);
   });
+}
+
+function renderLiveProgress(data) {
+  if (data.mode !== 'minknow') return;
+  const progress = data.live_progress;
+  const targetBases = Number(data.target_gb) * 1e9;
+  if (!progress) {
+    elements.liveProgressBadge.className = 'target-status';
+    elements.liveProgressBadge.textContent = 'COLLECTING';
+    elements.liveBaseValue.textContent = '—';
+    elements.liveGbValue.textContent = 'Waiting for live basecalling data';
+    elements.yieldProgressFill.classList.remove('reached');
+    elements.yieldProgressFill.style.width = '0%';
+    elements.yieldProgressCopy.textContent = `Target: ${bases(targetBases)} bases`;
+    elements.yieldProgressPercent.textContent = '0%';
+    elements.remainingBases.textContent = bases(targetBases);
+    elements.liveRate.textContent = '—';
+    elements.eta.textContent = '—';
+    return;
+  }
+
+  const reached = Boolean(progress.target_reached);
+  elements.liveProgressBadge.className = `target-status ${reached ? 'reached' : ''}`;
+  elements.liveProgressBadge.textContent = reached ? 'TARGET REACHED' : 'IN PROGRESS';
+  elements.yieldProgressFill.classList.toggle('reached', reached);
+  elements.liveBaseValue.textContent = bases(progress.passed_bases);
+  elements.liveGbValue.textContent = `${number(progress.passed_yield_gb, 3)} GB passed`;
+  elements.yieldProgressFill.style.width = `${Math.min(Number(progress.progress_percent), 100)}%`;
+  elements.yieldProgressCopy.textContent = `${bases(progress.passed_bases)} of ${bases(progress.target_bases)} bases`;
+  elements.yieldProgressPercent.textContent = `${number(progress.progress_percent, 1)}%`;
+  elements.remainingBases.textContent = reached ? '0 bases' : `${bases(progress.remaining_bases)} bases`;
+  elements.liveRate.textContent = progress.rate_bases_per_minute === null
+    ? '—'
+    : `${compactNumber(progress.rate_bases_per_minute)} bases/min`;
+  elements.eta.textContent = reached
+    ? `Reached at ${duration(progress.target_reached_elapsed_minutes)}`
+    : duration(progress.eta_minutes);
 }
 
 function renderTimeline(horizon) {
@@ -186,6 +260,7 @@ function renderStatus(data) {
   if (live && data.position_name && data.position_name !== displayedPosition) {
     displayedPosition = data.position_name;
     elements.target.value = data.target_gb;
+    renderTargetEquivalent();
   }
   const waiting = ['waiting', 'connecting', 'error'].includes(data.state);
   elements.waiting.classList.toggle('hidden', !waiting);
@@ -209,6 +284,7 @@ function renderStatus(data) {
   elements.advance.disabled = live || data.state === 'complete' || data.state === 'stopped';
   elements.stop.disabled = live || data.state === 'complete' || data.state === 'stopped';
   elements.start.textContent = live ? 'Apply target' : data.state === 'running' ? 'Restart replay' : 'Start replay';
+  renderLiveProgress(data);
   renderTimeline(data.current_horizon_minutes);
 
   const obs = data.observations;
@@ -225,7 +301,7 @@ function renderStatus(data) {
     elements.probability.textContent = '—';
     elements.probabilityRing.style.setProperty('--probability', '0deg');
     elements.confidence.textContent = 'Waiting';
-    elements.explanation.textContent = 'The first calibrated prediction will appear at the 30-minute checkpoint.';
+    elements.explanation.textContent = 'Prediction available at 30 minutes.';
     elements.problems.replaceChildren();
   } else {
     const prediction = assessment.prediction;
@@ -297,6 +373,8 @@ elements.start.addEventListener('click', async () => {
   }
 });
 
+elements.target.addEventListener('input', renderTargetEquivalent);
+
 elements.advance.addEventListener('click', async () => {
   try { renderStatus(await api('/api/advance', { method: 'POST', body: '{}' })); }
   catch (error) { showToast(error.message); }
@@ -309,6 +387,7 @@ elements.stop.addEventListener('click', async () => {
 
 (async function initialise() {
   try {
+    renderTargetEquivalent();
     await refresh();
     setInterval(refresh, 1000);
   } catch (error) {

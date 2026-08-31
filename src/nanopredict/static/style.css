@@ -55,7 +55,6 @@ main { max-width: 1320px; margin: 0 auto; padding: 54px 28px 32px; }
 .hero { display: flex; justify-content: space-between; align-items: end; gap: 32px; margin-bottom: 32px; }
 .eyebrow { margin: 0 0 8px; color: var(--accent); font-size: 11px; font-weight: 750; letter-spacing: .15em; }
 .hero h2 { max-width: 720px; margin: 0; font-size: clamp(31px, 4vw, 49px); line-height: 1.07; letter-spacing: -.045em; }
-.hero-copy { margin: 17px 0 0; max-width: 650px; color: var(--muted); line-height: 1.6; font-size: 15px; }
 .mode-card { min-width: 240px; padding: 18px 20px; border-radius: 16px; color: white; background: var(--ink); box-shadow: var(--shadow); }
 .mode-card span { display: block; color: #a9c1be; font-size: 12px; }
 .mode-card .mode-label { margin-bottom: 9px; color: #73d6c0; font-weight: 700; letter-spacing: .12em; font-size: 10px; }
@@ -70,7 +69,7 @@ main { max-width: 1320px; margin: 0 auto; padding: 54px 28px 32px; }
 label { display: block; margin: 16px 0 7px; color: #3f5352; font-size: 12px; font-weight: 650; }
 select, input { width: 100%; height: 44px; padding: 0 12px; color: var(--ink); background: white; border: 1px solid #cbd9d6; border-radius: 10px; outline: none; transition: border .15s, box-shadow .15s; }
 select:focus, input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(8,127,115,.12); }
-.position-list { display: grid; gap: 7px; }
+.position-list { max-height: 300px; overflow-y: auto; display: grid; gap: 7px; }
 .position-empty { margin: 0; padding: 11px 12px; color: var(--muted); background: #f4f7f6; border-radius: 10px; font-size: 11px; line-height: 1.45; }
 .position-option { width: 100%; min-height: 55px; padding: 9px 10px; display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--ink); text-align: left; background: white; border: 1px solid #cbd9d6; }
 .position-option:hover { border-color: #92bdb6; background: #fbfdfc; }
@@ -80,11 +79,13 @@ select:focus, input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px r
 .position-option small { overflow: hidden; color: var(--muted); font-size: 9px; font-weight: 550; text-overflow: ellipsis; white-space: nowrap; }
 .position-state { flex: 0 0 auto; padding: 4px 6px; color: #60706f; background: #edf2f1; border-radius: 999px; font-size: 8px; font-weight: 800; letter-spacing: .04em; }
 .position-state.good, .position-state.complete, .position-state.running { color: var(--good); background: var(--good-soft); }
+.position-state.reached { color: white; background: var(--good); }
 .position-state.bad, .position-state.error { color: var(--bad); background: var(--bad-soft); }
 .position-state.uncertain, .position-state.waiting { color: var(--warn); background: var(--warn-soft); }
 .input-unit { position: relative; }
 .input-unit input { padding-right: 44px; }
 .input-unit span { position: absolute; right: 13px; top: 13px; color: var(--muted); font-size: 12px; font-weight: 700; }
+.target-equivalent { margin: 6px 2px 0; color: var(--muted); font-size: 10px; }
 button { border: 0; border-radius: 10px; cursor: pointer; font-weight: 700; transition: transform .12s, background .12s, opacity .12s; }
 button:active:not(:disabled) { transform: translateY(1px); }
 button:disabled { opacity: .4; cursor: not-allowed; }
@@ -115,6 +116,24 @@ button:disabled { opacity: .4; cursor: not-allowed; }
 .run-header h3 { margin: 7px 0 0; font-size: 19px; }
 .run-meta { display: flex; gap: 7px; }
 .run-meta span { padding: 4px 8px; border-radius: 7px; color: var(--muted); background: #f0f4f3; font-size: 10px; font-weight: 700; }
+.live-progress { padding: 24px; }
+.live-progress-heading { display: flex; align-items: start; justify-content: space-between; gap: 16px; }
+.live-progress-heading h3 { margin: 0; font-size: 20px; }
+.target-status { padding: 7px 10px; color: var(--accent-dark); background: var(--accent-soft); border-radius: 999px; font-size: 9px; font-weight: 800; letter-spacing: .06em; }
+.target-status.reached { color: white; background: var(--good); }
+.live-base-value { margin-top: 25px; display: flex; align-items: baseline; gap: 9px; }
+.live-base-value strong { font-size: clamp(34px, 5vw, 54px); line-height: 1; letter-spacing: -.045em; }
+.live-base-value span { color: var(--muted); font-size: 13px; font-weight: 650; }
+.live-gb-value { margin: 8px 0 22px; color: var(--muted); font-size: 12px; }
+.yield-progress-track { height: 11px; overflow: hidden; background: #e4ecea; border-radius: 999px; }
+.yield-progress-fill { width: 0; height: 100%; background: var(--accent); border-radius: inherit; transition: width .5s ease; }
+.yield-progress-fill.reached { background: var(--good); }
+.yield-progress-labels { margin-top: 8px; display: flex; justify-content: space-between; gap: 16px; color: var(--muted); font-size: 10px; }
+.yield-progress-labels strong { color: var(--ink); }
+.live-progress-metrics { margin: 23px 0 0; display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--line); }
+.live-progress-metrics div { padding: 17px 15px 0 0; }
+.live-progress-metrics dt { margin-bottom: 6px; color: var(--muted); font-size: 10px; }
+.live-progress-metrics dd { margin: 0; font-size: 13px; font-weight: 750; }
 .status-badge { min-width: 126px; padding: 11px 13px; display: flex; justify-content: center; align-items: center; gap: 8px; border-radius: 10px; font-size: 11px; letter-spacing: .05em; background: #edf2f1; color: #60706f; }
 .status-badge span { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
 .status-badge.good { color: var(--good); background: var(--good-soft); }
@@ -134,6 +153,7 @@ button:disabled { opacity: .4; cursor: not-allowed; }
 .checkpoint.done { background: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 
 .metric-grid { display: grid; grid-template-columns: 1.15fr .9fr 1fr; gap: 14px; }
+.metric-grid.live { grid-template-columns: 1.15fr .85fr; }
 .metric-grid article { min-height: 190px; padding: 22px; }
 .metric-grid article > p:first-child { margin: 0; color: var(--muted); font-size: 12px; font-weight: 650; }
 .primary-metric > div, .observed-card > div { margin-top: 22px; display: flex; align-items: baseline; gap: 7px; }
@@ -186,7 +206,10 @@ button:disabled { opacity: .4; cursor: not-allowed; }
   .hero h2 { font-size: 33px; }
   .layout { gap: 14px; }
   .metric-grid { grid-template-columns: 1fr; }
+  .metric-grid.live { grid-template-columns: 1fr; }
   .observed-card { grid-column: auto; }
   .run-header { align-items: start; flex-direction: column; }
   .status-badge { min-width: 0; }
+  .live-progress-metrics { grid-template-columns: 1fr; }
+  .live-progress-metrics div { padding-top: 12px; }
 }

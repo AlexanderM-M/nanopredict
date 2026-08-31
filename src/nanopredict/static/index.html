@@ -24,7 +24,6 @@
       <div>
         <p class="eyebrow">RUN MONITOR</p>
         <h2>Know where your sequencing run is heading.</h2>
-        <p class="hero-copy">Calibrated yield forecasts and transparent quality signals at 30, 60, and 120 minutes.</p>
       </div>
       <div class="mode-card">
         <span class="mode-label">DATA SOURCE</span>
@@ -57,9 +56,10 @@
 
         <label for="targetInput">Target passed yield</label>
         <div class="input-unit">
-          <input id="targetInput" type="number" min="0.1" step="0.1" value="10">
+          <input id="targetInput" type="number" min="0.001" step="0.001" value="10">
           <span>GB</span>
         </div>
+        <p id="targetEquivalent" class="target-equivalent">10,000,000,000 bases</p>
 
         <div id="speedControl">
           <label for="speedSelect">Replay speed</label>
@@ -100,6 +100,22 @@
             <div id="statusBadge" class="status-badge pending"><span></span><strong>COLLECTING</strong></div>
           </section>
 
+          <section id="liveProgressPanel" class="panel live-progress hidden">
+            <div class="live-progress-heading">
+              <div><p class="eyebrow">LIVE PASSED YIELD</p><h3>Current bases</h3></div>
+              <span id="liveProgressBadge" class="target-status">COLLECTING</span>
+            </div>
+            <div class="live-base-value"><strong id="liveBaseValue">—</strong><span>bases</span></div>
+            <p id="liveGbValue" class="live-gb-value">Waiting for live basecalling data</p>
+            <div class="yield-progress-track"><div id="yieldProgressFill" class="yield-progress-fill"></div></div>
+            <div class="yield-progress-labels"><span id="yieldProgressCopy">0 of target</span><strong id="yieldProgressPercent">0%</strong></div>
+            <dl class="live-progress-metrics">
+              <div><dt>Remaining</dt><dd id="remainingBasesValue">—</dd></div>
+              <div><dt>Recent rate</dt><dd id="liveRateValue">—</dd></div>
+              <div><dt>Estimated time to target</dt><dd id="etaValue">—</dd></div>
+            </dl>
+          </section>
+
           <section class="timeline panel">
             <div class="timeline-labels"><span>Start</span><span>30 min</span><span>60 min</span><span>120 min</span></div>
             <div class="timeline-track">
@@ -111,7 +127,7 @@
             </div>
           </section>
 
-          <section class="metric-grid">
+          <section id="metricGrid" class="metric-grid">
             <article class="panel primary-metric">
               <p>Predicted final yield</p>
               <div><strong id="predictionValue">—</strong><span>GB</span></div>
@@ -121,7 +137,7 @@
               <div id="probabilityRing" class="probability-ring"><div><strong id="probabilityValue">—</strong><span>target probability</span></div></div>
               <p id="targetValue">Target: 10 GB</p>
             </article>
-            <article class="panel observed-card">
+            <article id="observedCard" class="panel observed-card">
               <p>Observed passed yield</p>
               <div><strong id="observedValue">—</strong><span>GB</span></div>
               <dl>

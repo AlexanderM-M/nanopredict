@@ -481,6 +481,47 @@ class MinknowCollector:
         row.update(_pore_scan(acquisition.bream_info, horizon_seconds))
         return row
 
+    def collect_live_progress(self, context: dict[str, Any]) -> dict[str, float]:
+        """Read the latest cumulative passed-base counters for the dashboard."""
+        try:
+            from minknow_api import statistics_pb2
+        except ImportError as exc:
+            raise MinknowUnavailableError(
+                "The MinKNOW 6.10 client is not installed."
+            ) from exc
+
+        elapsed = max(int(float(context["elapsed_seconds"])), 0)
+        selection = statistics_pb2.DataSelection(
+            start=max(elapsed - 120, 0),
+            step=60,
+            end=elapsed + 1,
+        )
+        output = _first_response(
+            context["connection"].statistics.stream_acquisition_output(
+                acquisition_run_id=context["run_id"],
+                data_selection=selection,
+                _timeout=self.rpc_timeout,
+            )
+        )
+        snapshots = [
+            snapshot
+            for group in getattr(output, "snapshots", [])
+            for snapshot in getattr(group, "snapshots", [])
+        ]
+        if not snapshots:
+            raise CheckpointNotReadyError(
+                "Waiting for the first live basecalling statistics."
+            )
+        latest = max(snapshots, key=lambda snapshot: float(snapshot.seconds))
+        summary = latest.yield_summary
+        return {
+            "observed_seconds": float(latest.seconds),
+            "passed_bases": float(summary.basecalled_pass_bases),
+            "failed_bases": float(summary.basecalled_fail_bases),
+            "total_reads": float(summary.read_count),
+            "passed_reads": float(summary.basecalled_pass_read_count),
+        }
+
     def _boxplot(self, connection: Any, run_id: str, horizon: int, data_type: int) -> Any | None:
         response = _first_response(
             connection.statistics.stream_basecall_boxplots(
@@ -545,6 +586,9 @@ class _PositionMonitor:
         self._minknow_version: str | None = None
         self._rows: dict[int, dict[str, Any]] = {}
         self._assessments: dict[int, dict[str, Any]] = {}
+        self._live_progress: dict[str, float] | None = None
+        self._progress_history: list[tuple[float, float]] = []
+        self._target_reached_seconds: float | None = None
         self._state = "connecting"
         self._message = "Connecting to local MinKNOW."
         self._last_update: str | None = None
@@ -563,6 +607,13 @@ class _PositionMonitor:
                 horizon: self.engine.assess(row, horizon, self._target_gb)
                 for horizon, row in self._rows.items()
             }
+            if self._live_progress is not None:
+                if self._live_progress["passed_bases"] >= self._target_gb * 1e9:
+                    self._target_reached_seconds = self._live_progress[
+                        "observed_seconds"
+                    ]
+                else:
+                    self._target_reached_seconds = None
             return self.status()
 
     def _run(self) -> None:
@@ -588,9 +639,34 @@ class _PositionMonitor:
                 self._run_key = run_key
                 self._rows.clear()
                 self._assessments.clear()
+                self._live_progress = None
+                self._progress_history.clear()
+                self._target_reached_seconds = None
             self._elapsed_seconds = elapsed
             self._minknow_version = context["minknow_version"]
             self._warning = None
+
+        try:
+            live_progress = self.collector.collect_live_progress(context)
+        except CheckpointNotReadyError:
+            live_progress = None
+        if live_progress is not None:
+            with self._lock:
+                point = (
+                    live_progress["observed_seconds"],
+                    live_progress["passed_bases"],
+                )
+                if self._progress_history and point[0] == self._progress_history[-1][0]:
+                    self._progress_history[-1] = point
+                elif not self._progress_history or point[0] > self._progress_history[-1][0]:
+                    self._progress_history.append(point)
+                    self._progress_history = self._progress_history[-12:]
+                self._live_progress = live_progress
+                if (
+                    self._target_reached_seconds is None
+                    and live_progress["passed_bases"] >= self._target_gb * 1e9
+                ):
+                    self._target_reached_seconds = live_progress["observed_seconds"]
 
         eligible = [h for h in SUPPORTED_HORIZONS if elapsed >= h * 60]
         for horizon in eligible:
@@ -631,6 +707,9 @@ class _PositionMonitor:
             self._elapsed_seconds = 0.0
             self._rows.clear()
             self._assessments.clear()
+            self._live_progress = None
+            self._progress_history.clear()
+            self._target_reached_seconds = None
             self._last_update = datetime.now(timezone.utc).isoformat()
 
     def set_error(self, message: str) -> None:
@@ -663,6 +742,51 @@ class _PositionMonitor:
                         row.get("pore_activity_pore_available_percent")
                     ),
                 }
+            live_progress = None
+            if self._live_progress is not None:
+                passed_bases = self._live_progress["passed_bases"]
+                target_bases = self._target_gb * 1e9
+                remaining_bases = max(target_bases - passed_bases, 0.0)
+                target_reached = passed_bases >= target_bases
+                rate_per_minute = None
+                if self._progress_history:
+                    latest_seconds, latest_bases = self._progress_history[-1]
+                    candidates = [
+                        point
+                        for point in self._progress_history
+                        if point[0] >= latest_seconds - 600
+                    ]
+                    earliest_seconds, earliest_bases = candidates[0]
+                    if latest_seconds > earliest_seconds:
+                        rate_per_minute = max(
+                            (latest_bases - earliest_bases)
+                            * 60.0
+                            / (latest_seconds - earliest_seconds),
+                            0.0,
+                        )
+                    elif latest_seconds > 0:
+                        rate_per_minute = max(
+                            latest_bases * 60.0 / latest_seconds, 0.0
+                        )
+                eta_minutes = None
+                if not target_reached and rate_per_minute and rate_per_minute > 0:
+                    eta_minutes = remaining_bases / rate_per_minute
+                live_progress = {
+                    **self._live_progress,
+                    "passed_yield_gb": passed_bases / 1e9,
+                    "target_bases": target_bases,
+                    "progress_fraction": min(passed_bases / target_bases, 1.0),
+                    "progress_percent": min(passed_bases * 100.0 / target_bases, 100.0),
+                    "remaining_bases": remaining_bases,
+                    "rate_bases_per_minute": rate_per_minute,
+                    "eta_minutes": eta_minutes,
+                    "target_reached": target_reached,
+                    "target_reached_elapsed_minutes": (
+                        None
+                        if self._target_reached_seconds is None
+                        else self._target_reached_seconds / 60.0
+                    ),
+                }
             return {
                 "mode": "minknow",
                 "state": self._state,
@@ -673,6 +797,7 @@ class _PositionMonitor:
                 "current_horizon_minutes": current,
                 "next_horizon_minutes": next_horizon,
                 "observations": observations,
+                "live_progress": live_progress,
                 "assessment": assessment,
                 "history": [
                     {
@@ -821,6 +946,7 @@ class LiveMonitor:
     def _position_summary(name: str, status: dict[str, Any]) -> dict[str, Any]:
         assessment = status.get("assessment") or {}
         prediction = assessment.get("prediction") or {}
+        live_progress = status.get("live_progress") or {}
         return {
             "position_name": name,
             "state": status["state"],
@@ -831,6 +957,10 @@ class LiveMonitor:
             "assessment_status": assessment.get("status"),
             "prediction_gb": prediction.get("point_prediction_gb"),
             "probability": assessment.get("probability_of_reaching_target"),
+            "passed_bases": live_progress.get("passed_bases"),
+            "progress_percent": live_progress.get("progress_percent"),
+            "eta_minutes": live_progress.get("eta_minutes"),
+            "target_reached": bool(live_progress.get("target_reached")),
             "message": status["message"],
         }
 
@@ -866,6 +996,7 @@ class LiveMonitor:
                 "current_horizon_minutes": None,
                 "next_horizon_minutes": SUPPORTED_HORIZONS[0],
                 "observations": None,
+                "live_progress": None,
                 "assessment": None,
                 "history": [],
                 "actual_final_gb": None,

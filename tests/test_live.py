@@ -22,9 +22,11 @@ from nanopredict.predict_calibrated import CalibratedYieldPredictor
 class FakeStatistics:
     def __init__(self):
         self.calls = []
+        self.acquisition_output_requests = []
 
     def stream_acquisition_output(self, **kwargs):
         self.calls.append("stream_acquisition_output")
+        self.acquisition_output_requests.append(kwargs)
         response = statistics_pb2.StreamAcquisitionOutputResponse()
         group = response.snapshots.add()
         for seconds, estimated, passed, failed, reads, pass_reads, fail_reads in (
@@ -126,6 +128,7 @@ class LiveCollectorTests(unittest.TestCase):
     def test_collects_every_model_feature_using_read_only_services(self):
         context = self.collector.inspect()
         row = self.collector.collect(30, context)
+        progress = self.collector.collect_live_progress(context)
         artifact = joblib.load(models_dir() / "calibrated_yield_30min.joblib")
         self.assertFalse(set(artifact["feature_columns"]) - set(row))
         self.assertEqual(context["minknow_version"], "6.10.12")
@@ -136,6 +139,12 @@ class LiveCollectorTests(unittest.TestCase):
         self.assertEqual(row["pore_scan_pore_available_count"], 420.0)
         self.assertEqual(row["planned_run_limit_hours"], 24.0)
         self.assertEqual(row["observed_target_temperature"], 0.0)
+        self.assertEqual(progress["passed_bases"], 900_000_000)
+        live_selection = self.connection.statistics.acquisition_output_requests[-1][
+            "data_selection"
+        ]
+        self.assertEqual(live_selection.step, 60)
+        self.assertLessEqual(live_selection.end - live_selection.start, 121)
         self.assertEqual(
             set(self.connection.statistics.calls),
             {
@@ -183,6 +192,14 @@ class LiveCollectorTests(unittest.TestCase):
         self.assertTrue(status["read_only"])
         self.assertEqual(status["sample_id"], "MN12345")
         self.assertEqual(status["active_position_count"], 1)
+        self.assertEqual(status["live_progress"]["passed_bases"], 900_000_000)
+        self.assertEqual(status["live_progress"]["progress_percent"], 9.0)
+        self.assertGreater(status["live_progress"]["rate_bases_per_minute"], 0)
+        self.assertGreater(status["live_progress"]["eta_minutes"], 0)
+
+        reached = monitor.configure(0.5, "MN12345")
+        self.assertTrue(reached["live_progress"]["target_reached"])
+        self.assertEqual(reached["live_progress"]["remaining_bases"], 0)
 
     def test_live_monitor_supervises_and_selects_multiple_positions(self):
         engine = RunDecisionEngine(

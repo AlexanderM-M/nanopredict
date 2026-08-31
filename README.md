@@ -35,9 +35,12 @@ of them simultaneously and lists them in the dashboard. Closing the browser does
 not stop monitoring.
 
 In the dashboard, enter the desired final passed-yield target and select
-**Apply target**. The first prediction appears when the active run reaches 30
-minutes; it is updated at 60 and 120 minutes. Nanopredict may be started before
-or after sequencing begins.
+**Apply target**. During sequencing, the dashboard continuously displays the
+current passed-base count, target progress, remaining bases, recent production
+rate, and estimated time to target. The target changes to **TARGET REACHED**
+when the live passed yield crosses it. The first final-yield prediction appears
+at 30 minutes and is updated at 60 and 120 minutes. Nanopredict may be started
+before or after sequencing begins.
 
 ```powershell
 nanopredict status
@@ -76,9 +79,11 @@ The repository launcher accepts the same option: `.\nanopredict.cmd --replay`.
 ## What the dashboard shows
 
 - Predicted final passed yield and a calibrated 90% interval
+- Continuously updated passed bases and target progress
+- Remaining bases, recent yield rate, and estimated time to target
 - Probability of reaching an operator-selected yield target
 - GOOD, BAD, or UNCERTAIN status with an explanation
-- Peer-based suspected QC problems and suggested checks
+- Concise peer-based suspected QC problem flags
 - Observed passed yield, reads, and temperature
 - A live 30/60/120-minute checkpoint timeline
 - One selectable overview of every active MinION position
