@@ -3,6 +3,8 @@ const elements = {
   connectionText: document.getElementById('connectionText'),
   sample: document.getElementById('sampleSelect'),
   sampleControl: document.getElementById('sampleControl'),
+  positionControl: document.getElementById('positionControl'),
+  positionList: document.getElementById('positionList'),
   target: document.getElementById('targetInput'),
   speed: document.getElementById('speedSelect'),
   speedControl: document.getElementById('speedControl'),
@@ -43,6 +45,9 @@ let lastState = 'waiting';
 let currentMode = null;
 let runsLoaded = false;
 let toastTimer;
+let selectedPosition = null;
+let displayedPosition = null;
+let refreshToken = 0;
 
 function number(value, digits = 1) {
   if (value === null || value === undefined || !Number.isFinite(Number(value))) return '—';
@@ -73,17 +78,18 @@ function setConnected(connected) {
   elements.connectionText.textContent = connected ? 'Dashboard online' : 'Reconnecting';
 }
 
-function configureMode(mode, version) {
+function configureMode(mode, version, activeCount = 0) {
   const live = mode === 'minknow';
   currentMode = mode;
   elements.sampleControl.classList.toggle('hidden', live);
+  elements.positionControl.classList.toggle('hidden', !live);
   elements.speedControl.classList.toggle('hidden', live);
   elements.advance.parentElement.classList.toggle('hidden', live);
   elements.setupTitle.textContent = live ? 'Monitor a run' : 'Replay a run';
   elements.sourcePill.textContent = live ? 'Read-only' : 'Anonymous data';
   elements.modeName.textContent = live ? 'Live MinKNOW' : 'Historical replay';
   elements.modeDetail.textContent = live
-    ? `${version || 'MinKNOW 6.10'} · MinION · local`
+    ? `${version || 'MinKNOW 6.10'} · ${activeCount} active position${activeCount === 1 ? '' : 's'} · local`
     : 'Anonymous MinION runs · accelerated';
   elements.start.textContent = live ? 'Apply target' : 'Start replay';
   elements.runMode.textContent = live ? 'Live' : 'Replay';
@@ -91,6 +97,53 @@ function configureMode(mode, version) {
     ? '<strong>Local and read-only.</strong><br>Nanopredict reads run statistics but cannot pause, stop, or alter sequencing.'
     : '<strong>Anonymous replay.</strong><br>Replay labels contain no patient names, run identifiers, or N-numbers.';
   if (!live && !runsLoaded) loadRuns().catch(error => showToast(error.message));
+}
+
+function renderPositions(data) {
+  if (data.mode !== 'minknow') return;
+  const positions = Array.isArray(data.positions) ? data.positions : [];
+  selectedPosition = data.selected_position || null;
+  elements.positionList.replaceChildren();
+  if (positions.length === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'position-empty';
+    empty.textContent = 'No active MinION positions yet.';
+    elements.positionList.append(empty);
+    return;
+  }
+
+  positions.forEach(position => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'position-option';
+    button.classList.toggle('selected', position.position_name === selectedPosition);
+    button.setAttribute('aria-pressed', position.position_name === selectedPosition ? 'true' : 'false');
+
+    const copy = document.createElement('span');
+    const name = document.createElement('strong');
+    name.textContent = position.position_name;
+    const detail = document.createElement('small');
+    detail.textContent = position.current_horizon_minutes
+      ? `${position.current_horizon_minutes}-min prediction · ${number(position.prediction_gb)} GB`
+      : position.state === 'waiting'
+        ? 'Waiting for acquisition'
+        : `Next prediction: ${position.next_horizon_minutes || 30} min`;
+    copy.append(name, detail);
+
+    const state = document.createElement('span');
+    const label = ['error', 'waiting'].includes(position.state)
+      ? position.state
+      : position.assessment_status || position.state || 'connecting';
+    state.className = `position-state ${String(label).toLowerCase()}`;
+    state.textContent = String(label).toUpperCase();
+    button.append(copy, state);
+    button.addEventListener('click', () => {
+      if (selectedPosition === position.position_name) return;
+      selectedPosition = position.position_name;
+      refresh();
+    });
+    elements.positionList.append(button);
+  });
 }
 
 function renderProblems(items) {
@@ -127,8 +180,13 @@ function renderTimeline(horizon) {
 }
 
 function renderStatus(data) {
-  configureMode(data.mode, data.minknow_version);
+  configureMode(data.mode, data.minknow_version, data.active_position_count || 0);
+  renderPositions(data);
   const live = data.mode === 'minknow';
+  if (live && data.position_name && data.position_name !== displayedPosition) {
+    displayedPosition = data.position_name;
+    elements.target.value = data.target_gb;
+  }
   const waiting = ['waiting', 'connecting', 'error'].includes(data.state);
   elements.waiting.classList.toggle('hidden', !waiting);
   elements.run.classList.toggle('hidden', waiting);
@@ -205,12 +263,17 @@ async function loadRuns() {
 }
 
 async function refresh() {
+  const token = ++refreshToken;
   try {
-    const status = await api('/api/status');
+    const query = currentMode === 'minknow' && selectedPosition
+      ? `?position=${encodeURIComponent(selectedPosition)}`
+      : '';
+    const status = await api(`/api/status${query}`);
+    if (token !== refreshToken) return;
     setConnected(true);
     renderStatus(status);
   } catch (error) {
-    setConnected(false);
+    if (token === refreshToken) setConnected(false);
   }
 }
 
@@ -221,7 +284,7 @@ elements.start.addEventListener('click', async () => {
     const live = currentMode === 'minknow';
     const result = await api(live ? '/api/configure' : '/api/start', {
       method: 'POST',
-      body: JSON.stringify(live ? { target_gb: target } : {
+      body: JSON.stringify(live ? { target_gb: target, position_name: selectedPosition } : {
         sample_id: elements.sample.value,
         target_gb: target,
         seconds_per_step: Number(elements.speed.value)

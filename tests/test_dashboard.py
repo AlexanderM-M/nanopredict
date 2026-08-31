@@ -3,11 +3,13 @@ from __future__ import annotations
 import re
 import unittest
 from html.parser import HTMLParser
+from types import SimpleNamespace
 
 from nanopredict.diagnose_run import RunDecisionEngine
 from nanopredict.paths import diagnostic_reference, models_dir, replay_features, static_dir
 from nanopredict.predict_calibrated import CalibratedYieldPredictor
 from nanopredict.replay import ReplayCatalog, ReplaySession
+from nanopredict.server import make_handler
 
 
 class ReplayCatalogTests(unittest.TestCase):
@@ -75,6 +77,45 @@ class ReplaySessionTests(unittest.TestCase):
     def test_invalid_target_is_rejected(self):
         with self.assertRaisesRegex(ValueError, "positive"):
             self.session.start("Sample1", target_gb=0)
+
+
+class PositionApiTests(unittest.TestCase):
+    def test_status_selection_and_target_position_reach_application(self):
+        class FakeApplication:
+            mode = "minknow"
+            catalog = SimpleNamespace(list_runs=lambda: [])
+
+            def __init__(self):
+                self.status_position = None
+                self.configuration = None
+
+            def status(self, position_name=None):
+                self.status_position = position_name
+                return {"selected_position": position_name}
+
+            def configure(self, target_gb, position_name=None):
+                self.configuration = (target_gb, position_name)
+                return {"target_gb": target_gb, "selected_position": position_name}
+
+        application = FakeApplication()
+        handler_type = make_handler(application)
+        handler = object.__new__(handler_type)
+        sent = []
+        handler._send_json = lambda payload, status=200: sent.append((payload, status))
+
+        handler.path = "/api/status?position=MN22222"
+        handler.do_GET()
+        self.assertEqual(sent[-1][0]["selected_position"], "MN22222")
+        self.assertEqual(application.status_position, "MN22222")
+
+        handler.path = "/api/configure"
+        handler._read_json = lambda: {
+            "target_gb": 15,
+            "position_name": "MN22222",
+        }
+        handler.do_POST()
+        self.assertEqual(sent[-1][0]["target_gb"], 15)
+        self.assertEqual(application.configuration, (15.0, "MN22222"))
 
 
 if __name__ == "__main__":

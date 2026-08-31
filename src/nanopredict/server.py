@@ -9,7 +9,7 @@ from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 import numpy as np
 
@@ -54,13 +54,19 @@ class DashboardApplication:
             else None
         )
 
-    def status(self) -> dict[str, Any]:
-        return self.live.status() if self.live is not None else self.replay.status()
+    def status(self, position_name: str | None = None) -> dict[str, Any]:
+        return (
+            self.live.status(position_name)
+            if self.live is not None
+            else self.replay.status()
+        )
 
-    def configure(self, target_gb: float) -> dict[str, Any]:
+    def configure(
+        self, target_gb: float, position_name: str | None = None
+    ) -> dict[str, Any]:
         if self.live is None:
             raise ValueError("Live monitoring is not active")
-        return self.live.configure(target_gb)
+        return self.live.configure(target_gb, position_name)
 
     def close(self) -> None:
         if self.live is not None:
@@ -71,7 +77,7 @@ def make_handler(application: DashboardApplication):
     assets = static_dir().resolve()
 
     class DashboardHandler(BaseHTTPRequestHandler):
-        server_version = "Nanopredict/0.1"
+        server_version = "Nanopredict/0.3"
 
         def log_message(self, format: str, *args: Any) -> None:
             return
@@ -112,13 +118,16 @@ def make_handler(application: DashboardApplication):
             self.wfile.write(body)
 
         def do_GET(self) -> None:
-            path = urlparse(self.path).path
+            request_url = urlparse(self.path)
+            path = request_url.path
             if path == "/api/health":
                 self._send_json({"ok": True, "service": "nanopredict"})
             elif path == "/api/replays":
                 self._send_json({"runs": application.catalog.list_runs()})
             elif path == "/api/status":
-                self._send_json(application.status())
+                query = parse_qs(request_url.query)
+                position_name = query.get("position", [None])[0]
+                self._send_json(application.status(position_name))
             elif path.startswith("/api/"):
                 self._send_json({"error": "Unknown API endpoint"}, HTTPStatus.NOT_FOUND)
             else:
@@ -129,7 +138,10 @@ def make_handler(application: DashboardApplication):
             try:
                 payload = self._read_json()
                 if path == "/api/configure":
-                    result = application.configure(float(payload.get("target_gb", 10)))
+                    result = application.configure(
+                        float(payload.get("target_gb", 10)),
+                        payload.get("position_name"),
+                    )
                 elif path == "/api/start" and application.mode == "replay":
                     result = application.replay.start(
                         str(payload.get("sample_id", "")),

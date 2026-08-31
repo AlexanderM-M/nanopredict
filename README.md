@@ -30,7 +30,9 @@ nanopredict
 
 Nanopredict starts in the background, binds only to `127.0.0.1`, and opens the
 dashboard in the default browser. It waits for an active MinION run and detects
-new runs automatically. Closing the browser does not stop monitoring.
+new runs automatically. If several MinION positions are active, it monitors all
+of them simultaneously and lists them in the dashboard. Closing the browser does
+not stop monitoring.
 
 In the dashboard, enter the desired final passed-yield target and select
 **Apply target**. The first prediction appears when the active run reaches 30
@@ -79,6 +81,7 @@ The repository launcher accepts the same option: `.\nanopredict.cmd --replay`.
 - Peer-based suspected QC problems and suggested checks
 - Observed passed yield, reads, and temperature
 - A live 30/60/120-minute checkpoint timeline
+- One selectable overview of every active MinION position
 
 Replay mode contains 513 snapshots from 171 complete MinION runs. Its table
 contains only anonymous `SampleN` labels, the numerical model inputs, and the
@@ -94,12 +97,14 @@ boxplots, duty time, temperature, basecaller settings, and pore-scan results.
 
 It uses only documented getter and statistics-stream RPCs. It contains no code
 to start, stop, pause, unblock, change voltage, change temperature, or otherwise
-control a run. Sample names, run IDs, flow-cell IDs, and device serials are not
-sent to the browser or stored by Nanopredict.
+control a run. Run IDs, flow-cell IDs, sample names, and patient identifiers are
+not sent to the browser or stored by Nanopredict. MinKNOW position names are
+shown only in the local dashboard so an operator can select the correct device;
+Nanopredict does not persist or transmit them externally.
 
-If several MinION positions are running simultaneously, select one by position
-name with `nanopredict --position POSITION_NAME`. To show connection errors in
-the terminal, use `nanopredict --foreground`.
+By default, every active MinION position is monitored. To deliberately restrict
+monitoring to one position, launch with `nanopredict --position POSITION_NAME`.
+To show connection errors in the terminal, use `nanopredict --foreground`.
 
 ## Development
 

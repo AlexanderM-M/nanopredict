@@ -273,7 +273,8 @@ class MinknowCollector:
             ) from exc
         return Manager(host=self.host)
 
-    def _active_connection(self) -> tuple[Any, Any]:
+    def active_positions(self) -> list[Any]:
+        """Return every active MinION position allowed by the CLI filter."""
         try:
             positions = list(self._manager().flow_cell_positions())
         except Exception as exc:
@@ -292,20 +293,25 @@ class MinknowCollector:
                 active.append(position)
         if not active:
             raise NoActiveRunError("Waiting for an active MinION sequencing run in MinKNOW.")
+        return sorted(active, key=lambda item: str(getattr(item, "name", "")))
+
+    def inspect(self) -> dict[str, Any]:
+        """Return metadata for a single active position."""
+        active = self.active_positions()
         if len(active) > 1:
             raise NoActiveRunError(
-                "More than one MinION run is active; select one with --position."
+                "More than one MinION run is active; select a position."
             )
+        return self.inspect_position(active[0])
+
+    def inspect_position(self, position: Any) -> dict[str, Any]:
+        """Return active-run metadata for one discovered position."""
         try:
-            return active[0], active[0].connect()
+            connection = position.connect()
         except Exception as exc:
             raise MinknowUnavailableError(
                 "MinKNOW found the run but could not connect to it."
             ) from exc
-
-    def inspect(self) -> dict[str, Any]:
-        """Return active-run metadata without collecting checkpoint statistics."""
-        position, connection = self._active_connection()
         try:
             version = connection.instance.get_version_info(_timeout=self.rpc_timeout)
         except Exception as exc:
@@ -518,8 +524,8 @@ class MinknowCollector:
         return measured, 0.0
 
 
-class LiveMonitor:
-    """Poll MinKNOW in the background and retain checkpoint predictions."""
+class _PositionMonitor:
+    """Retain checkpoint predictions for one MinKNOW position."""
 
     def __init__(
         self,
@@ -567,56 +573,72 @@ class LiveMonitor:
     def poll_once(self) -> None:
         try:
             context = self.collector.inspect()
-            run_key = context["run_key"]
-            elapsed = float(context["elapsed_seconds"])
-            with self._lock:
-                if run_key != self._run_key:
-                    self._run_key = run_key
-                    self._rows.clear()
-                    self._assessments.clear()
-                self._elapsed_seconds = elapsed
-                self._minknow_version = context["minknow_version"]
-                self._warning = None
-
-            eligible = [h for h in SUPPORTED_HORIZONS if elapsed >= h * 60]
-            for horizon in eligible:
-                with self._lock:
-                    missing = horizon not in self._rows
-                if missing:
-                    try:
-                        row = self.collector.collect(horizon, context)
-                    except CheckpointNotReadyError:
-                        break
-                    assessment = self.engine.assess(row, horizon, self._target_gb)
-                    with self._lock:
-                        self._rows[horizon] = row
-                        self._assessments[horizon] = assessment
-
-            with self._lock:
-                current = max(self._rows, default=None)
-                self._state = "complete" if current == SUPPORTED_HORIZONS[-1] else "running"
-                next_horizon = next((h for h in SUPPORTED_HORIZONS if h not in self._rows), None)
-                self._message = (
-                    "All early prediction checkpoints have been collected."
-                    if next_horizon is None
-                    else f"Collecting data for the {next_horizon}-minute checkpoint."
-                )
-                self._last_update = datetime.now(timezone.utc).isoformat()
+            self.poll_context(context)
         except NoActiveRunError as exc:
-            with self._lock:
-                self._state = "waiting"
-                self._message = str(exc)
-                self._run_key = None
-                self._elapsed_seconds = 0.0
+            self.set_waiting(str(exc))
+        except Exception as exc:
+            self.set_error(str(exc) or type(exc).__name__)
+
+    def poll_context(self, context: dict[str, Any]) -> None:
+        """Collect due checkpoints from already-discovered position metadata."""
+        run_key = context["run_key"]
+        elapsed = float(context["elapsed_seconds"])
+        with self._lock:
+            if run_key != self._run_key:
+                self._run_key = run_key
                 self._rows.clear()
                 self._assessments.clear()
-                self._last_update = datetime.now(timezone.utc).isoformat()
-        except Exception as exc:
+            self._elapsed_seconds = elapsed
+            self._minknow_version = context["minknow_version"]
+            self._warning = None
+
+        eligible = [h for h in SUPPORTED_HORIZONS if elapsed >= h * 60]
+        for horizon in eligible:
             with self._lock:
-                self._state = "error"
-                self._message = str(exc) or type(exc).__name__
-                self._warning = "Live collection will retry automatically."
-                self._last_update = datetime.now(timezone.utc).isoformat()
+                missing = horizon not in self._rows
+                target_gb = self._target_gb
+            if missing:
+                try:
+                    row = self.collector.collect(horizon, context)
+                except CheckpointNotReadyError:
+                    break
+                assessment = self.engine.assess(row, horizon, target_gb)
+                with self._lock:
+                    if target_gb != self._target_gb:
+                        assessment = self.engine.assess(
+                            row, horizon, self._target_gb
+                        )
+                    self._rows[horizon] = row
+                    self._assessments[horizon] = assessment
+
+        with self._lock:
+            current = max(self._rows, default=None)
+            self._state = "complete" if current == SUPPORTED_HORIZONS[-1] else "running"
+            next_horizon = next((h for h in SUPPORTED_HORIZONS if h not in self._rows), None)
+            self._message = (
+                "All early prediction checkpoints have been collected."
+                if next_horizon is None
+                else f"Collecting data for the {next_horizon}-minute checkpoint."
+            )
+            self._last_update = datetime.now(timezone.utc).isoformat()
+
+    def set_waiting(self, message: str) -> None:
+        with self._lock:
+            self._state = "waiting"
+            self._message = message
+            self._warning = None
+            self._run_key = None
+            self._elapsed_seconds = 0.0
+            self._rows.clear()
+            self._assessments.clear()
+            self._last_update = datetime.now(timezone.utc).isoformat()
+
+    def set_error(self, message: str) -> None:
+        with self._lock:
+            self._state = "error"
+            self._message = message
+            self._warning = "Live collection will retry automatically."
+            self._last_update = datetime.now(timezone.utc).isoformat()
 
     def close(self) -> None:
         self._stop_event.set()
@@ -674,3 +696,195 @@ class LiveMonitor:
                 "device_target": "MinION",
                 "read_only": True,
             }
+
+
+class LiveMonitor:
+    """Supervise every active MinION position from one background thread."""
+
+    def __init__(
+        self,
+        collector: MinknowCollector,
+        engine: RunDecisionEngine,
+        poll_seconds: float = 20.0,
+        start_thread: bool = True,
+    ):
+        self.collector = collector
+        self.engine = engine
+        self.poll_seconds = poll_seconds
+        self._default_target_gb = 10.0
+        self._lock = threading.RLock()
+        self._stop_event = threading.Event()
+        self._monitors: dict[str, _PositionMonitor] = {}
+        self._state = "connecting"
+        self._message = "Connecting to local MinKNOW."
+        self._warning: str | None = None
+        self._last_update: str | None = None
+        self._thread: threading.Thread | None = None
+        if start_thread:
+            self._thread = threading.Thread(
+                target=self._run,
+                daemon=True,
+                name="nanopredict-live",
+            )
+            self._thread.start()
+
+    def _run(self) -> None:
+        while not self._stop_event.is_set():
+            self.poll_once()
+            self._stop_event.wait(self.poll_seconds)
+
+    def poll_once(self) -> None:
+        try:
+            positions = self.collector.active_positions()
+        except NoActiveRunError as exc:
+            with self._lock:
+                self._monitors.clear()
+                self._state = "waiting"
+                self._message = str(exc)
+                self._warning = None
+                self._last_update = datetime.now(timezone.utc).isoformat()
+            return
+        except Exception as exc:
+            error_message = str(exc) or type(exc).__name__
+            with self._lock:
+                self._state = "error"
+                self._message = error_message
+                self._warning = "Live collection will retry automatically."
+                self._last_update = datetime.now(timezone.utc).isoformat()
+                monitors = list(self._monitors.values())
+            for monitor in monitors:
+                monitor.set_error(error_message)
+            return
+
+        active_names = {
+            str(getattr(position, "name", "Unknown position")) for position in positions
+        }
+        with self._lock:
+            for name in list(self._monitors):
+                if name not in active_names:
+                    del self._monitors[name]
+
+        for position in positions:
+            name = str(getattr(position, "name", "Unknown position"))
+            with self._lock:
+                monitor = self._monitors.get(name)
+                if monitor is None:
+                    monitor = _PositionMonitor(
+                        self.collector,
+                        self.engine,
+                        poll_seconds=self.poll_seconds,
+                        start_thread=False,
+                    )
+                    monitor.configure(self._default_target_gb)
+                    self._monitors[name] = monitor
+            try:
+                context = self.collector.inspect_position(position)
+                monitor.poll_context(context)
+            except NoActiveRunError as exc:
+                monitor.set_waiting(str(exc))
+            except Exception as exc:
+                monitor.set_error(str(exc) or type(exc).__name__)
+
+        with self._lock:
+            self._state = "running"
+            count = len(self._monitors)
+            self._message = f"Monitoring {count} active MinION position{'s' if count != 1 else ''}."
+            self._warning = None
+            self._last_update = datetime.now(timezone.utc).isoformat()
+
+    def configure(
+        self, target_gb: float, position_name: str | None = None
+    ) -> dict[str, Any]:
+        if not math.isfinite(target_gb) or target_gb <= 0:
+            raise ValueError("Target yield must be a positive number")
+        with self._lock:
+            names = sorted(self._monitors)
+            if position_name is None:
+                if len(names) > 1:
+                    raise ValueError("Select a MinION position before applying the target")
+                position_name = names[0] if names else None
+            if position_name is not None and position_name not in self._monitors:
+                raise ValueError(f"Active MinION position not found: {position_name}")
+            if position_name is None:
+                self._default_target_gb = float(target_gb)
+                return self.status()
+            monitor = self._monitors[position_name]
+        monitor.configure(target_gb)
+        return self.status(position_name)
+
+    def close(self) -> None:
+        self._stop_event.set()
+        if self._thread and self._thread.is_alive():
+            self._thread.join(timeout=min(self.poll_seconds + 1, 5))
+
+    @staticmethod
+    def _position_summary(name: str, status: dict[str, Any]) -> dict[str, Any]:
+        assessment = status.get("assessment") or {}
+        prediction = assessment.get("prediction") or {}
+        return {
+            "position_name": name,
+            "state": status["state"],
+            "target_gb": status["target_gb"],
+            "elapsed_minutes": status["elapsed_minutes"],
+            "current_horizon_minutes": status["current_horizon_minutes"],
+            "next_horizon_minutes": status["next_horizon_minutes"],
+            "assessment_status": assessment.get("status"),
+            "prediction_gb": prediction.get("point_prediction_gb"),
+            "probability": assessment.get("probability_of_reaching_target"),
+            "message": status["message"],
+        }
+
+    def status(self, position_name: str | None = None) -> dict[str, Any]:
+        with self._lock:
+            names = sorted(self._monitors)
+            monitors = [(name, self._monitors[name]) for name in names]
+            state = self._state
+            message = self._message
+            warning = self._warning
+            last_update = self._last_update
+            default_target = self._default_target_gb
+
+        detailed = {name: monitor.status() for name, monitor in monitors}
+        positions = [
+            self._position_summary(name, detailed[name]) for name in names
+        ]
+        selected = position_name if position_name in detailed else (names[0] if names else None)
+        common = {
+            "positions": positions,
+            "active_position_count": len(positions),
+            "selected_position": selected,
+        }
+        if selected is None:
+            return {
+                "mode": "minknow",
+                "state": state,
+                "sample_id": None,
+                "position_name": None,
+                "device_type": "MinION",
+                "target_gb": default_target,
+                "elapsed_minutes": 0.0,
+                "current_horizon_minutes": None,
+                "next_horizon_minutes": SUPPORTED_HORIZONS[0],
+                "observations": None,
+                "assessment": None,
+                "history": [],
+                "actual_final_gb": None,
+                "message": message,
+                "warning": warning,
+                "last_update": last_update,
+                "minknow_version": None,
+                "minknow_core_target": "6.10.x",
+                "device_target": "MinION",
+                "read_only": True,
+                **common,
+            }
+
+        result = detailed[selected]
+        result.update(
+            {
+                "sample_id": selected,
+                "position_name": selected,
+                **common,
+            }
+        )
+        return result

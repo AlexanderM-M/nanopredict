@@ -76,6 +76,7 @@ class FakeStatistics:
 
 class FakeConnection:
     def __init__(self, acquisition, core_version=(6, 10, 12)):
+        self.current_acquisition = acquisition
         self.statistics = FakeStatistics()
         version = instance_pb2.GetVersionInfoResponse()
         version.minknow.major, version.minknow.minor, version.minknow.patch = (
@@ -84,7 +85,7 @@ class FakeConnection:
         version.minknow.full = ".".join(str(item) for item in core_version)
         self.instance = SimpleNamespace(get_version_info=lambda **kwargs: version)
         self.acquisition = SimpleNamespace(
-            get_current_acquisition_run=lambda **kwargs: acquisition
+            get_current_acquisition_run=lambda **kwargs: self.current_acquisition
         )
         basecaller = analysis_configuration_pb2.BasecallerConfiguration()
         basecaller.read_filtering.min_qscore.value = 10.0
@@ -93,11 +94,11 @@ class FakeConnection:
         )
 
 
-def fake_run():
-    acquisition = acquisition_pb2.AcquisitionRunInfo(run_id="private-run-id")
+def fake_run(run_id="private-run-id", elapsed_seconds=1805):
+    acquisition = acquisition_pb2.AcquisitionRunInfo(run_id=run_id)
     acquisition.config_summary.basecalling_enabled = True
-    acquisition.start_time.FromSeconds(int(time.time()) - 1805)
-    acquisition.data_read_start_time.FromSeconds(int(time.time()) - 1801)
+    acquisition.start_time.FromSeconds(int(time.time()) - elapsed_seconds)
+    acquisition.data_read_start_time.FromSeconds(int(time.time()) - elapsed_seconds)
     runtime = wrappers_pb2.UInt64Value(value=24 * 3600)
     acquisition.target_run_until_criteria.stop_criteria.criteria["runtime"].Pack(runtime)
     metadata = acquisition.bream_info.mux_scan_metadata
@@ -180,7 +181,64 @@ class LiveCollectorTests(unittest.TestCase):
         self.assertEqual(status["current_horizon_minutes"], 30)
         self.assertIn(status["assessment"]["status"], {"GOOD", "BAD", "UNCERTAIN"})
         self.assertTrue(status["read_only"])
-        self.assertEqual(status["sample_id"], "Live MinION run")
+        self.assertEqual(status["sample_id"], "MN12345")
+        self.assertEqual(status["active_position_count"], 1)
+
+    def test_live_monitor_supervises_and_selects_multiple_positions(self):
+        engine = RunDecisionEngine(
+            CalibratedYieldPredictor(models_dir()), diagnostic_reference()
+        )
+        connections = {
+            "MN11111": FakeConnection(fake_run("private-run-one")),
+            "MN22222": FakeConnection(fake_run("private-run-two")),
+        }
+        positions = [
+            SimpleNamespace(
+                name=name,
+                device_type="MINION_MK1D",
+                protocol_state="protocol_running",
+                connect=lambda name=name: connections[name],
+            )
+            for name in reversed(connections)
+        ]
+        manager = SimpleNamespace(flow_cell_positions=lambda: positions)
+        collector = MinknowCollector(manager_factory=lambda **kwargs: manager)
+        monitor = LiveMonitor(collector, engine, start_thread=False)
+
+        monitor.poll_once()
+        first = monitor.status()
+        second = monitor.status("MN22222")
+
+        self.assertEqual(first["active_position_count"], 2)
+        self.assertEqual(
+            [item["position_name"] for item in first["positions"]],
+            ["MN11111", "MN22222"],
+        )
+        self.assertEqual(first["selected_position"], "MN11111")
+        self.assertEqual(second["position_name"], "MN22222")
+        self.assertEqual(second["current_horizon_minutes"], 30)
+        self.assertTrue(all(item["prediction_gb"] for item in first["positions"]))
+
+        updated = monitor.configure(15, "MN22222")
+        self.assertEqual(updated["target_gb"], 15)
+        self.assertEqual(monitor.status("MN11111")["target_gb"], 10)
+
+    def test_new_run_on_a_position_resets_earlier_predictions(self):
+        engine = RunDecisionEngine(
+            CalibratedYieldPredictor(models_dir()), diagnostic_reference()
+        )
+        monitor = LiveMonitor(self.collector, engine, start_thread=False)
+        monitor.poll_once()
+        self.assertEqual(monitor.status()["current_horizon_minutes"], 30)
+
+        self.connection.current_acquisition = fake_run(
+            "different-private-run", elapsed_seconds=300
+        )
+        monitor.poll_once()
+        status = monitor.status()
+        self.assertIsNone(status["current_horizon_minutes"])
+        self.assertIsNone(status["assessment"])
+        self.assertEqual(status["history"], [])
 
 
 if __name__ == "__main__":

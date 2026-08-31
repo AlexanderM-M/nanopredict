@@ -119,7 +119,10 @@ def build_parser() -> argparse.ArgumentParser:
         help="Data source. Auto uses MinKNOW when its client is installed.",
     )
     parser.add_argument("--minknow-host", default="localhost")
-    parser.add_argument("--position", help="MinKNOW position name when several runs are active")
+    parser.add_argument(
+        "--position",
+        help="Monitor only this MinKNOW position instead of all active positions",
+    )
     parser.add_argument(
         "--replay",
         action="store_true",

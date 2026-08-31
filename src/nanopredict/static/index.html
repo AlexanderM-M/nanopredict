@@ -48,6 +48,13 @@
           <select id="sampleSelect"><option>Loading runs…</option></select>
         </div>
 
+        <div id="positionControl" class="hidden">
+          <label>Active MinION positions</label>
+          <div id="positionList" class="position-list" aria-live="polite">
+            <p class="position-empty">Looking for active positions…</p>
+          </div>
+        </div>
+
         <label for="targetInput">Target passed yield</label>
         <div class="input-unit">
           <input id="targetInput" type="number" min="0.1" step="0.1" value="10">
