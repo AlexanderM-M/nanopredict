@@ -94,6 +94,7 @@ The repository launcher accepts the same option: `.\nanopredict.cmd --replay`.
 - A live 30/60/120-minute checkpoint timeline
 - One selectable overview of every active MinION position
 - Live NanoDx classifier CpGs and progress toward the institute threshold of 180
+- Recent CpG accumulation rate and estimated time to the 180-CpG threshold
 
 Replay mode contains 513 snapshots from 171 complete MinION runs. Its table
 contains only anonymous `SampleN` labels, the numerical model inputs, and the
@@ -121,7 +122,8 @@ output, alignment, or MM/ML tags are missing. It processes only BAM batches that
 MinKNOW has finished writing, so the CpG count updates after each completed BAM
 batch in addition to the 20-second scan interval. A BAM batch duration of about
 60–120 seconds gives a more responsive display than MinKNOW's longer batching
-defaults.
+defaults. The CpG ETA appears after two completed batches show measurable CpG
+growth and is recalculated from the recent accumulation rate after every batch.
 
 The bundled target table represents 366,217 of the 366,263 features selected by
 the NanoDx `Capper_et_al` model; 46 source features could not be cleanly lifted

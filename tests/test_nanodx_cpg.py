@@ -174,6 +174,63 @@ class NanoDxTargetTests(unittest.TestCase):
             self.assertEqual(resumed.status()["count"], 180)
             self.assertEqual(len(calls), 1)
 
+    def test_counter_estimates_threshold_time_from_successive_bam_batches(self):
+        starts = []
+        with gzip.open(nanodx_cpg_targets(), "rt", encoding="ascii") as handle:
+            for line in handle:
+                if line.startswith("#"):
+                    continue
+                chrom, start, _end, _probe = line.rstrip().split("\t")
+                start = int(start)
+                if chrom == "chr1" and len(self.targets.probes_at(chrom, start)) == 1:
+                    starts.append(start)
+                if len(starts) == 60:
+                    break
+
+        alignments = {
+            "batch1.bam": FakeAlignment([FakeRead(start) for start in starts[:30]]),
+            "batch2.bam": FakeAlignment([FakeRead(start) for start in starts[30:]]),
+        }
+
+        def opener(path, *_args):
+            return alignments[Path(path).name]
+
+        now = [0.0]
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            state = root / "state"
+            (root / "batch1.bam").write_bytes(b"complete")
+            counter = NanoDxCpgCounter(
+                self.targets,
+                "eta-run",
+                persistence_root=state,
+                opener=opener,
+                ready_check=lambda _path: True,
+                clock=lambda: now[0],
+            )
+            counter.scan_directory(root)
+            self.assertEqual(counter.status()["count"], 30)
+            self.assertIsNone(counter.status()["eta_minutes"])
+
+            now[0] = 60.0
+            (root / "batch2.bam").write_bytes(b"complete")
+            counter.scan_directory(root)
+            status = counter.status()
+            self.assertEqual(status["count"], 60)
+            self.assertAlmostEqual(status["rate_cpg_per_minute"], 30.0)
+            self.assertAlmostEqual(status["eta_minutes"], 4.0)
+            self.assertEqual(status["estimated_threshold_at"], "1970-01-01T00:05:00+00:00")
+
+            resumed = NanoDxCpgCounter(
+                self.targets,
+                "eta-run",
+                persistence_root=state,
+                opener=opener,
+                ready_check=lambda _path: True,
+                clock=lambda: now[0],
+            )
+            self.assertAlmostEqual(resumed.status()["eta_minutes"], 4.0)
+
     def test_monitor_reports_actionable_minknow_setup_states(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

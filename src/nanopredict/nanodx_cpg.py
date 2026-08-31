@@ -10,6 +10,7 @@ import os
 import re
 import tempfile
 import threading
+import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from functools import lru_cache
@@ -305,11 +306,13 @@ class NanoDxCpgCounter:
         persistence_root: Path | None = None,
         opener: Callable[..., Any] = bamnostic.AlignmentFile,
         ready_check: Callable[[Path], bool] = _bam_is_complete,
+        clock: Callable[[], float] = time.time,
     ):
         self.targets = targets
         self.run_key = run_key
         self.opener = opener
         self.ready_check = ready_check
+        self.clock = clock
         try:
             self.persistence_root = persistence_root or state_dir() / "nanodx-cpg"
             self.persistence_root.mkdir(parents=True, exist_ok=True)
@@ -320,6 +323,7 @@ class NanoDxCpgCounter:
         self.histogram = [0] * 256
         self.reads = 0
         self.tagged_reads = 0
+        self.progress_history: list[tuple[float, int]] = []
         self._load()
 
     @property
@@ -355,6 +359,13 @@ class NanoDxCpgCounter:
                 self.histogram = histogram
             self.reads = int(payload.get("reads", 0))
             self.tagged_reads = int(payload.get("tagged_reads", 0))
+            history = []
+            for timestamp, count in payload.get("progress_history", []):
+                timestamp = float(timestamp)
+                count = int(count)
+                if math.isfinite(timestamp) and count >= 0:
+                    history.append((timestamp, count))
+            self.progress_history = sorted(history)[-120:]
         except (FileNotFoundError, OSError, TypeError, ValueError, json.JSONDecodeError):
             return
 
@@ -369,6 +380,7 @@ class NanoDxCpgCounter:
             "histogram": self.histogram,
             "reads": self.reads,
             "tagged_reads": self.tagged_reads,
+            "progress_history": self.progress_history,
         }
         descriptor, temporary_name = tempfile.mkstemp(
             prefix=f".{self.run_key}.", suffix=".tmp", dir=self.persistence_root
@@ -386,6 +398,7 @@ class NanoDxCpgCounter:
         root = Path(root)
         if not root.is_dir():
             return
+        processed_any = False
         for path in sorted(root.rglob("*.bam")):
             try:
                 fingerprint = self._fingerprint(path)
@@ -403,19 +416,62 @@ class NanoDxCpgCounter:
             self.reads += result.reads
             self.tagged_reads += result.tagged_reads
             self.processed.add(fingerprint)
+            processed_any = True
+        if processed_any:
+            self.progress_history.append((float(self.clock()), self._current_count()))
+            self.progress_history = self.progress_history[-120:]
             self._save()
 
-    def status(self) -> dict[str, Any]:
+    def _current_count(self) -> int:
         threshold = _percentile_threshold(self.histogram)
-        count = sum(confidence >= threshold for confidence in self.covered.values())
+        return sum(confidence >= threshold for confidence in self.covered.values())
+
+    def _recent_rate(self) -> float | None:
+        if len(self.progress_history) < 2:
+            return None
+        latest_time = self.progress_history[-1][0]
+        recent = [
+            sample
+            for sample in self.progress_history
+            if sample[0] >= latest_time - 600.0
+        ]
+        if len(recent) < 2:
+            recent = self.progress_history[-2:]
+        first_time, first_count = recent[0]
+        last_time, last_count = recent[-1]
+        elapsed_minutes = (last_time - first_time) / 60.0
+        gained = last_count - first_count
+        if elapsed_minutes <= 0 or gained <= 0:
+            return None
+        return gained / elapsed_minutes
+
+    def status(self) -> dict[str, Any]:
+        count = self._current_count()
         reached = count >= INSTITUTE_CPG_THRESHOLD
+        remaining = max(INSTITUTE_CPG_THRESHOLD - count, 0)
+        rate = self._recent_rate()
+        if reached:
+            eta_minutes = 0.0
+        elif rate is None:
+            eta_minutes = None
+        else:
+            eta_minutes = remaining / rate
+        estimated_at = None
+        if eta_minutes is not None and self.progress_history:
+            estimated_at = datetime.fromtimestamp(
+                self.progress_history[-1][0] + eta_minutes * 60.0,
+                tz=timezone.utc,
+            ).isoformat()
         return {
             "state": "reached" if reached else "collecting",
             "count": count,
             "threshold": INSTITUTE_CPG_THRESHOLD,
-            "remaining": max(INSTITUTE_CPG_THRESHOLD - count, 0),
+            "remaining": remaining,
             "progress_percent": min(count * 100.0 / INSTITUTE_CPG_THRESHOLD, 100.0),
             "threshold_reached": reached,
+            "rate_cpg_per_minute": rate,
+            "eta_minutes": eta_minutes,
+            "estimated_threshold_at": estimated_at,
             "model": NANODX_MODEL,
             "assembly": TARGET_ASSEMBLY,
             "model_features": self.targets.feature_count,
@@ -425,7 +481,7 @@ class NanoDxCpgCounter:
             "message": (
                 "Institute report threshold reached"
                 if reached
-                else f"{max(INSTITUTE_CPG_THRESHOLD - count, 0)} CpGs remaining"
+                else f"{remaining} CpGs remaining"
             ),
         }
 
@@ -465,6 +521,9 @@ class NanoDxCpgMonitor:
             "remaining": INSTITUTE_CPG_THRESHOLD,
             "progress_percent": 0.0,
             "threshold_reached": False,
+            "rate_cpg_per_minute": None,
+            "eta_minutes": None,
+            "estimated_threshold_at": None,
             "model": NANODX_MODEL,
             "assembly": TARGET_ASSEMBLY,
             "model_features": EXPECTED_HG38_FEATURES,

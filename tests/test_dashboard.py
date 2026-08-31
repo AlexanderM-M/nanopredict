@@ -59,8 +59,11 @@ class ReplayCatalogTests(unittest.TestCase):
         self.assertIn("LIVE PASSED YIELD", html)
         self.assertIn("NANODX CLASSIFIER CPGS", html)
         self.assertIn("/ 180 NanoDx CpGs", html)
+        self.assertIn("Estimated time to 180 CpGs", html)
         self.assertIn("TARGET REACHED", javascript)
         self.assertIn("THRESHOLD REACHED", javascript)
+        self.assertIn("rate_cpg_per_minute", javascript)
+        self.assertIn("CpG ETA", javascript)
 
     def test_prediction_display_uses_adaptive_yield_units(self):
         javascript = (static_dir() / "app.js").read_text(encoding="utf-8")

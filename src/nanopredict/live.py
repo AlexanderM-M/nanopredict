@@ -1011,6 +1011,8 @@ class LiveMonitor:
             "nanodx_cpg_threshold": nanodx_cpg.get("threshold"),
             "nanodx_cpg_reached": bool(nanodx_cpg.get("threshold_reached")),
             "nanodx_cpg_state": nanodx_cpg.get("state"),
+            "nanodx_cpg_rate_per_minute": nanodx_cpg.get("rate_cpg_per_minute"),
+            "nanodx_cpg_eta_minutes": nanodx_cpg.get("eta_minutes"),
             "message": status["message"],
         }
 

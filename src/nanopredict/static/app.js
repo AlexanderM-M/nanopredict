@@ -41,6 +41,8 @@ const elements = {
   cpgProgressMessage: document.getElementById('cpgProgressMessage'),
   cpgProgressFill: document.getElementById('cpgProgressFill'),
   cpgProgressPercent: document.getElementById('cpgProgressPercent'),
+  cpgRate: document.getElementById('cpgRateValue'),
+  cpgEta: document.getElementById('cpgEtaValue'),
   timelineFill: document.getElementById('timelineFill'),
   prediction: document.getElementById('predictionValue'),
   predictionUnit: document.getElementById('predictionUnit'),
@@ -186,8 +188,11 @@ function renderPositions(data) {
     const name = document.createElement('strong');
     name.textContent = position.position_name;
     const detail = document.createElement('small');
+    const cpgEtaSummary = position.nanodx_cpg_eta_minutes !== null && position.nanodx_cpg_eta_minutes !== undefined
+      ? ` · CpG ETA ${duration(position.nanodx_cpg_eta_minutes)}`
+      : '';
     const cpgSummary = position.nanodx_cpg_count !== null && position.nanodx_cpg_count !== undefined
-      ? ` · ${position.nanodx_cpg_count}/${position.nanodx_cpg_threshold || 180} CpGs`
+      ? ` · ${position.nanodx_cpg_count}/${position.nanodx_cpg_threshold || 180} CpGs${cpgEtaSummary}`
       : '';
     detail.textContent = position.passed_bases !== null && position.passed_bases !== undefined
       ? `${compactNumber(position.passed_bases)} bases · ${number(position.progress_percent, 0)}% of target${cpgSummary}`
@@ -287,6 +292,8 @@ function renderCpgProgress(data) {
     elements.cpgProgressFill.classList.remove('reached');
     elements.cpgProgressFill.style.width = '0%';
     elements.cpgProgressPercent.textContent = '0%';
+    elements.cpgRate.textContent = '—';
+    elements.cpgEta.textContent = 'Calculating';
     return;
   }
 
@@ -304,6 +311,16 @@ function renderCpgProgress(data) {
   elements.cpgProgressFill.classList.toggle('error', needsSetup);
   elements.cpgProgressFill.style.width = `${Math.min(Number(cpg.progress_percent) || 0, 100)}%`;
   elements.cpgProgressPercent.textContent = `${number(cpg.progress_percent, 0)}%`;
+  elements.cpgRate.textContent = cpg.rate_cpg_per_minute === null
+    ? '—'
+    : `${number(cpg.rate_cpg_per_minute, 1)} CpGs/min`;
+  elements.cpgEta.textContent = reached
+    ? 'Reached'
+    : needsSetup
+      ? '—'
+      : cpg.eta_minutes === null
+        ? 'Calculating'
+        : duration(cpg.eta_minutes);
 }
 
 function renderTimeline(horizon) {

@@ -204,6 +204,8 @@ class LiveCollectorTests(unittest.TestCase):
         self.assertEqual(status["live_progress"]["progress_percent"], 9.0)
         self.assertGreater(status["live_progress"]["rate_bases_per_minute"], 0)
         self.assertGreater(status["live_progress"]["eta_minutes"], 0)
+        self.assertIn("eta_minutes", status["nanodx_cpg"])
+        self.assertIn("nanodx_cpg_eta_minutes", status["positions"][0])
 
         reached = monitor.configure(0.5, "MN12345")
         self.assertTrue(reached["live_progress"]["target_reached"])
