@@ -30,7 +30,7 @@ fi
 
 if [ "$NANOPREDICT_READY_HASH" != "$NANOPREDICT_CONFIG_HASH" ]; then
     echo "Installing or updating Nanopredict..."
-    "$NANOPREDICT_PYTHON" -m pip install 'setuptools>=68' wheel
+    "$NANOPREDICT_PYTHON" -m pip install 'setuptools>=77' wheel
     "$NANOPREDICT_PYTHON" -m pip install --no-build-isolation --editable "$NANOPREDICT_ROOT"
     printf '%s\n' "$NANOPREDICT_CONFIG_HASH" > "$NANOPREDICT_READY"
 fi

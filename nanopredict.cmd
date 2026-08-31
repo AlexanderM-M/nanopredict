@@ -30,7 +30,7 @@ if exist "%NANOPREDICT_READY%" set /p NANOPREDICT_READY_HASH=<"%NANOPREDICT_READ
 
 if not "%NANOPREDICT_READY_HASH%"=="%NANOPREDICT_CONFIG_HASH%" (
     echo Installing or updating Nanopredict...
-    "%NANOPREDICT_PYTHON%" -m pip install "setuptools>=68" wheel
+    "%NANOPREDICT_PYTHON%" -m pip install "setuptools>=77" wheel
     if errorlevel 1 exit /b 1
     "%NANOPREDICT_PYTHON%" -m pip install --no-build-isolation --editable "%NANOPREDICT_ROOT%."
     if errorlevel 1 exit /b 1

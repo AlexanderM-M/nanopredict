@@ -17,7 +17,8 @@ from .diagnose_run import RunDecisionEngine
 from .predict_calibrated import CalibratedYieldPredictor
 
 from .paths import diagnostic_reference, models_dir, replay_features, static_dir
-from .live import LiveMonitor, MinknowCollector
+from .bam_fallback import BamFallbackCollector
+from .live import AdaptiveCollector, LiveMonitor, MinknowCollector
 from .replay import ReplayCatalog, ReplaySession
 
 
@@ -37,6 +38,7 @@ class DashboardApplication:
         source: str = "auto",
         minknow_host: str = "localhost",
         position: str | None = None,
+        bam_dir: str | None = None,
     ):
         predictor = CalibratedYieldPredictor(models_dir())
         engine = RunDecisionEngine(predictor, diagnostic_reference())
@@ -49,7 +51,15 @@ class DashboardApplication:
             raise ValueError(f"Unknown data source: {source}")
         self.mode = source
         self.live = (
-            LiveMonitor(MinknowCollector(minknow_host, position), engine)
+            LiveMonitor(
+                AdaptiveCollector(
+                    MinknowCollector(minknow_host, position),
+                    # A BAM-only run has no reliable MinKNOW position-name
+                    # field, so fallback runs receive anonymous local labels.
+                    BamFallbackCollector(bam_dir),
+                ),
+                engine,
+            )
             if source == "minknow"
             else None
         )
@@ -77,7 +87,7 @@ def make_handler(application: DashboardApplication):
     assets = static_dir().resolve()
 
     class DashboardHandler(BaseHTTPRequestHandler):
-        server_version = "Nanopredict/0.6.1"
+        server_version = "Nanopredict/0.7.0"
 
         def log_message(self, format: str, *args: Any) -> None:
             return
@@ -180,8 +190,9 @@ def serve(
     source: str = "auto",
     minknow_host: str = "localhost",
     position: str | None = None,
+    bam_dir: str | None = None,
 ) -> None:
-    application = DashboardApplication(source, minknow_host, position)
+    application = DashboardApplication(source, minknow_host, position, bam_dir)
     server = ThreadingHTTPServer((host, port), make_handler(application))
     server.daemon_threads = True
     try:
