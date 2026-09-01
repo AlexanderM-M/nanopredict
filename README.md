@@ -15,12 +15,19 @@ replay mode are included.
 Requirements: MinKNOW and 64-bit Python 3.9–3.12 on the sequencing computer.
 
 ```powershell
-py -m pip install nanopredict
+pip install nanopredict
 nanopredict
 ```
 
 Every later launch is simply `nanopredict`. To install a newer release, run
-`py -m pip install --upgrade nanopredict`.
+`pip install --upgrade nanopredict`.
+
+If Windows does not recognize `pip` or `nanopredict`, use the Python launcher:
+
+```powershell
+py -m pip install nanopredict
+py -m nanopredict
+```
 
 ## Install from a clone
 
