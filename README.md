@@ -10,11 +10,23 @@ replay mode are included.
 > **Research-use prototype:** prospective validation is required. Predictions
 > and suspected-problem flags must not replace MinKNOW QC or operator judgement.
 
-## Quick start from a clone
+## Install from PyPI
 
-Requirements: MinKNOW, Git, and 64-bit Python 3.9–3.12 on the sequencing
-computer. The fully validated live collector targets Core 6.10.12 and MinION;
-other Core generations are detected and handled as described below.
+Requirements: MinKNOW and 64-bit Python 3.9–3.12 on the sequencing computer.
+
+```powershell
+py -m pip install nanopredict
+nanopredict
+```
+
+Every later launch is simply `nanopredict`. To install a newer release, run
+`py -m pip install --upgrade nanopredict`.
+
+## Install from a clone
+
+For an editable checkout, Git is also required. The fully validated live
+collector targets Core 6.10.12 and MinION; other Core generations are detected
+and handled as described below.
 
 ```powershell
 git clone https://github.com/AlexanderM-M/nanopredict.git
@@ -24,8 +36,7 @@ nanopredict
 ```
 
 The installation command is required once because cloning a repository cannot
-register a shell command or install Python dependencies. Every later launch is
-just:
+register a shell command or install Python dependencies. Every later launch is:
 
 ```powershell
 nanopredict
