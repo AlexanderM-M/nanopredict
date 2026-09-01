@@ -1,11 +1,12 @@
 # Nanopredict
 
-Nanopredict is a local browser dashboard for calibrated early prediction of
-Oxford Nanopore MinION run yield. It connects read-only to MinKNOW, adapts to
-the capabilities exposed by the installed Core version, and predicts final
-passed yield at 30, 60, and 120 minutes when the required statistics are
-available. A version-independent BAM fallback and an anonymous historical
-replay mode are included.
+Nanopredict is a local browser dashboard for live Oxford Nanopore run
+monitoring and calibrated early prediction of MinION yield. It connects
+read-only to MinKNOW, adapts to the capabilities exposed by the installed Core
+version, and monitors MinION and PromethION sequencing. Calibrated final-yield
+prediction at 30, 60, and 120 minutes is currently available for MinION runs.
+A version-independent BAM fallback and an anonymous historical replay mode are
+included.
 
 > **Research-use prototype:** prospective validation is required. Predictions
 > and suspected-problem flags must not replace MinKNOW QC or operator judgement.
@@ -13,6 +14,8 @@ replay mode are included.
 ## Install from PyPI
 
 Requirements: MinKNOW and 64-bit Python 3.9–3.12 on the sequencing computer.
+MinION, MinION Mk1C/Mk1D, PromethION, P2 Solo, and P2 Integrated positions are
+detected automatically.
 
 ```powershell
 pip install nanopredict
@@ -50,18 +53,18 @@ nanopredict
 ```
 
 Nanopredict starts in the background, binds only to `127.0.0.1`, and opens the
-dashboard in the default browser. It waits for an active MinION run and detects
-new runs automatically. If several MinION positions are active, it monitors all
-of them simultaneously and lists them in the dashboard. Closing the browser does
-not stop monitoring.
+dashboard in the default browser. It waits for an active supported run and
+detects new runs automatically. If several positions are active, it monitors
+all of them simultaneously and lists them in the dashboard. Closing the browser
+does not stop monitoring.
 
 In the dashboard, enter the desired final passed-yield target and select
 **Apply target**. During sequencing, the dashboard continuously displays the
 current passed-base count, target progress, remaining bases, recent production
 rate, and estimated time to target. The target changes to **TARGET REACHED**
-when the live passed yield crosses it. The first final-yield prediction appears
-at 30 minutes and is updated at 60 and 120 minutes. Nanopredict may be started
-before or after sequencing begins.
+when the live passed yield crosses it. For MinION, the first final-yield
+prediction appears at 30 minutes and is updated at 60 and 120 minutes.
+Nanopredict may be started before or after sequencing begins.
 
 The dashboard also follows completed MinKNOW BAM batches and counts covered CpG
 features used by the NanoDx Capper classifier. It displays progress toward the
@@ -112,9 +115,10 @@ The repository launcher accepts the same option: `.\nanopredict.cmd --replay`.
 - GOOD, BAD, or UNCERTAIN status with an explanation
 - Concise peer-based suspected QC problem flags
 - Observed passed yield, reads, and temperature
-- One selectable overview of every active MinION position
+- One selectable overview of every active supported position
 - Live NanoDx classifier CpGs and progress toward the institute threshold of 180
 - Recent CpG accumulation rate and estimated time to the 180-CpG threshold
+- PromethION live yield and CpG monitoring without applying the MinION model
 
 Replay mode contains 513 snapshots from 171 complete MinION runs. Its table
 contains only anonymous `SampleN` labels, the numerical model inputs, and the
@@ -131,6 +135,16 @@ optional statistics non-fatal, and falls back to completed BAM batches when the
 essential API counters are incompatible. The validated collector reads
 acquisition output, basecall boxplots, duty time, temperature, basecaller
 settings, and pore-scan results.
+
+### PromethION support
+
+For `PROMETHION`, `P2_SOLO`, and `P2_INTEGRATED` positions, Nanopredict displays
+live passed bases, operator-defined target progress, recent yield rate, target
+ETA, completed-BAM monitoring, NanoDx CpGs, and CpG ETA. The calibrated final-
+yield card is deliberately disabled because the bundled models were trained on
+171 MinION runs only. A dedicated calibrated PromethION model requires suitable
+PromethION training summaries and outcomes; Nanopredict does not silently apply
+the MinION model to a different device class.
 
 ### Live NanoDx CpG counter
 
@@ -162,7 +176,8 @@ local run with NanoDx's reported `num_features`.
 Nanopredict chooses the best available read-only path automatically:
 
 - **Validated API:** Core 6.10.x with the bundled 6.10 API client. This provides
-  live yield, calibrated final-yield predictions, QC features, and CpGs.
+  live yield and CpGs for supported devices, plus calibrated final-yield
+  predictions for MinION.
 - **Compatibility API:** another Core version that still exposes compatible
   acquisition and statistics fields. Nanopredict uses the available fields and
   labels the session as compatibility mode. Because Oxford Nanopore may change
@@ -195,8 +210,8 @@ not sent to the browser or stored by Nanopredict. MinKNOW position names are
 shown only in the local dashboard so an operator can select the correct device;
 Nanopredict does not persist or transmit them externally.
 
-By default, every active MinION position is monitored. To deliberately restrict
-API monitoring to one position, launch with
+By default, every active supported position is monitored. To deliberately
+restrict API monitoring to one position, launch with
 `nanopredict --position POSITION_NAME`. BAM-only runs have anonymous `BAM-XXXXXX`
 labels and remain selectable in the dashboard because BAM output does not
 reliably expose the MinKNOW position name. To show connection errors in the

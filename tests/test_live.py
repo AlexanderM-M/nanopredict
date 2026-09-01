@@ -14,7 +14,12 @@ from minknow_api import (
 )
 
 from nanopredict.diagnose_run import RunDecisionEngine
-from nanopredict.live import LiveMonitor, MinknowCollector, NoActiveRunError
+from nanopredict.live import (
+    CheckpointNotReadyError,
+    LiveMonitor,
+    MinknowCollector,
+    NoActiveRunError,
+)
 from nanopredict.paths import diagnostic_reference, models_dir
 from nanopredict.predict_calibrated import CalibratedYieldPredictor
 
@@ -218,6 +223,54 @@ class LiveCollectorTests(unittest.TestCase):
         self.assertIsNone(row["observed_qscore_mode"])
         self.assertIsNone(row["observed_temperature"])
         self.assertIsNone(row["minimum_q_score_setting"])
+
+    def test_discovers_all_supported_promethion_position_types(self):
+        for device_type in ("PROMETHION", "P2_SOLO", "P2_INTEGRATED"):
+            with self.subTest(device_type=device_type):
+                position = SimpleNamespace(
+                    name=f"{device_type}-position",
+                    device_type=device_type,
+                    protocol_state="protocol_running",
+                )
+                manager = SimpleNamespace(flow_cell_positions=lambda: [position])
+                collector = MinknowCollector(
+                    manager_factory=lambda **kwargs: manager
+                )
+                self.assertEqual(collector.active_positions(), [position])
+
+    def test_promethion_is_monitored_without_using_the_minion_model(self):
+        connection = FakeConnection(fake_run("promethion-private-run"))
+        position = SimpleNamespace(
+            name="P2S-00001",
+            device_type="P2_SOLO",
+            protocol_state="protocol_running",
+            connect=lambda: connection,
+        )
+        manager = SimpleNamespace(flow_cell_positions=lambda: [position])
+        collector = MinknowCollector(manager_factory=lambda **kwargs: manager)
+        context = collector.inspect()
+
+        self.assertEqual(context["device_type"], "PromethION")
+        self.assertEqual(context["device_api_type"], "P2_SOLO")
+        self.assertFalse(context["prediction_available"])
+        self.assertIn("trained on MinION", context["prediction_unavailable_reason"])
+        with self.assertRaisesRegex(CheckpointNotReadyError, "PromethION"):
+            collector.collect(30, context)
+
+        engine = RunDecisionEngine(
+            CalibratedYieldPredictor(models_dir()), diagnostic_reference()
+        )
+        monitor = LiveMonitor(collector, engine, start_thread=False)
+        monitor.poll_once()
+        status = monitor.status()
+        self.assertEqual(status["state"], "running")
+        self.assertEqual(status["device_type"], "PromethION")
+        self.assertEqual(status["device_api_type"], "P2_SOLO")
+        self.assertIsNone(status["assessment"])
+        self.assertIsNone(status["current_horizon_minutes"])
+        self.assertEqual(status["live_progress"]["passed_bases"], 900_000_000)
+        self.assertFalse(status["prediction_available"])
+        self.assertIn("Live yield", status["message"])
 
     def test_live_monitor_emits_a_calibrated_checkpoint(self):
         engine = RunDecisionEngine(

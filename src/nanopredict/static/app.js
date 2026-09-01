@@ -144,6 +144,7 @@ function configureMode(
   activeCount = 0,
   collectorMode = 'connecting',
   apiClientVersion = null,
+  deviceType = 'Nanopore',
 ) {
   const live = mode === 'minknow';
   const modeLabel = collectorMode === 'validated'
@@ -172,7 +173,7 @@ function configureMode(
     : live ? 'Read-only' : 'Anonymous data';
   elements.modeName.textContent = live ? 'Live MinKNOW' : 'Historical replay';
   elements.modeDetail.textContent = live
-    ? `${versionLabel}${clientLabel} · ${modeLabel} · ${activeCount} active position${activeCount === 1 ? '' : 's'} · local`
+    ? `${deviceType || 'Nanopore'} · ${versionLabel}${clientLabel} · ${modeLabel} · ${activeCount} active position${activeCount === 1 ? '' : 's'} · local`
     : 'Anonymous MinION runs · accelerated';
   elements.start.textContent = live ? 'Apply target' : 'Start replay';
   elements.runMode.textContent = live ? 'Live' : 'Replay';
@@ -190,7 +191,7 @@ function renderPositions(data) {
   if (positions.length === 0) {
     const empty = document.createElement('p');
     empty.className = 'position-empty';
-    empty.textContent = 'No active MinION positions yet.';
+    empty.textContent = 'No active sequencing positions yet.';
     elements.positionList.append(empty);
     return;
   }
@@ -215,7 +216,7 @@ function renderPositions(data) {
     detail.textContent = position.passed_bases !== null && position.passed_bases !== undefined
       ? `${compactNumber(position.passed_bases)} bases · ${number(position.progress_percent, 0)}% of target${cpgSummary}`
       : position.prediction_available === false
-        ? `BAM monitoring${cpgSummary}`
+        ? `${position.collector_mode === 'bam_fallback' ? 'BAM' : position.device_type || 'Live'} monitoring${cpgSummary}`
       : position.current_horizon_minutes
         ? `${position.current_horizon_minutes}-min prediction · ${yieldText(position.prediction_gb)}${cpgSummary}`
       : position.state === 'waiting'
@@ -350,6 +351,7 @@ function renderStatus(data) {
     data.active_position_count || 0,
     data.collector_mode,
     data.api_client_version,
+    data.device_type,
   );
   renderPositions(data);
   const live = data.mode === 'minknow';
@@ -364,9 +366,9 @@ function renderStatus(data) {
   if (waiting) {
     elements.waitingTitle.textContent = data.state === 'error'
       ? 'Live connection problem'
-      : live ? 'Waiting for a MinION run' : 'Ready for a replay';
+      : live ? 'Waiting for a sequencing run' : 'Ready for a replay';
     elements.waitingCopy.textContent = data.message || (live
-      ? 'Start a sequencing run in MinKNOW. Nanopredict will detect it automatically.'
+      ? 'Start a supported sequencing run in MinKNOW. Nanopredict will detect it automatically.'
       : 'Choose a historical run and target yield to begin.');
     elements.advance.disabled = true;
     elements.stop.disabled = true;
@@ -374,7 +376,7 @@ function renderStatus(data) {
     return;
   }
 
-  elements.sampleName.textContent = data.sample_id || 'Live MinION run';
+  elements.sampleName.textContent = data.sample_id || 'Live Nanopore run';
   elements.runMessage.textContent = data.message;
   elements.targetValue.textContent = `Target: ${number(data.target_gb)} GB`;
   elements.advance.disabled = live || data.state === 'complete' || data.state === 'stopped';
@@ -388,21 +390,25 @@ function renderStatus(data) {
   elements.temperature.textContent = obs && obs.temperature_c !== null ? `${number(obs.temperature_c)} °C` : '—';
 
   const assessment = data.assessment;
+  const predictionReason = data.prediction_unavailable_reason
+    || 'Calibrated final-yield prediction is unavailable for this monitoring mode.';
   if (!assessment) {
     elements.statusBadge.className = 'status-badge pending';
     elements.statusBadge.querySelector('strong').textContent = data.prediction_available === false
-      ? 'BAM MODE'
+      ? 'MONITORING'
       : 'COLLECTING';
     elements.prediction.textContent = '—';
     elements.predictionUnit.textContent = 'GB';
     elements.interval.textContent = data.prediction_available === false
-      ? 'Unavailable without compatible MinKNOW statistics'
+      ? 'Calibrated prediction unavailable'
       : `Next prediction at ${data.next_horizon_minutes} minutes`;
     elements.probability.textContent = '—';
     elements.probabilityRing.style.setProperty('--probability', '0deg');
-    elements.confidence.textContent = data.prediction_available === false ? 'BAM fallback' : 'Waiting';
+    elements.confidence.textContent = data.prediction_available === false
+      ? `${data.device_type || 'Nanopore'} monitoring`
+      : 'Waiting';
     elements.explanation.textContent = data.prediction_available === false
-      ? 'Live passed yield and NanoDx CpGs remain available.'
+      ? `${predictionReason} Live passed yield and NanoDx CpGs remain available.`
       : 'Prediction available at 30 minutes.';
     elements.problems.replaceChildren();
   } else {

@@ -70,6 +70,8 @@ class ReplayCatalogTests(unittest.TestCase):
         self.assertIn("Compatibility API", javascript)
         self.assertIn("BAM fallback", javascript)
         self.assertIn("Live passed yield and NanoDx CpGs remain available", javascript)
+        self.assertIn("Calibrated prediction unavailable", javascript)
+        self.assertNotIn("No active MinION positions yet", javascript)
         self.assertNotIn("MinKNOW 6.10 · MinION profile", html)
 
     def test_prediction_display_uses_adaptive_yield_units(self):

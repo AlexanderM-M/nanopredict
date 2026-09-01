@@ -312,6 +312,12 @@ class BamFallbackCollector:
                 "final-yield prediction requires a compatible MinKNOW statistics API."
             ),
             "prediction_available": False,
+            "prediction_unavailable_reason": (
+                "Calibrated final-yield prediction requires a compatible MinKNOW "
+                "statistics API."
+            ),
+            "device_type": "Nanopore",
+            "device_api_type": None,
             "output_path": str(position.root),
             "reads_directory": str(position.root),
             "bam_reads_enabled": True,

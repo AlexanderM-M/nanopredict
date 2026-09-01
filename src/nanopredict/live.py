@@ -1,4 +1,4 @@
-"""Adaptive, read-only feature collection for live MinION runs."""
+"""Adaptive, read-only feature collection for live Nanopore runs."""
 
 from __future__ import annotations
 
@@ -23,6 +23,8 @@ from .replay import SUPPORTED_HORIZONS
 
 
 MINION_DEVICE_TYPES = {"MINION", "MINION_MK1C", "MINION_MK1D"}
+PROMETHION_DEVICE_TYPES = {"PROMETHION", "P2_SOLO", "P2_INTEGRATED"}
+SUPPORTED_DEVICE_TYPES = MINION_DEVICE_TYPES | PROMETHION_DEVICE_TYPES
 MODEL_DEVICE_TYPE = "MINION_MK1D"
 CALIBRATION_PURPOSE = 3  # minknow_api.acquisition_pb2.CALIBRATION in API 6.x
 VALIDATED_CORE_VERSION = (6, 10)
@@ -33,7 +35,7 @@ class MinknowUnavailableError(RuntimeError):
 
 
 class NoActiveRunError(RuntimeError):
-    """Raised while no active MinION sequencing acquisition is available."""
+    """Raised while no supported sequencing acquisition is available."""
 
 
 class CheckpointNotReadyError(RuntimeError):
@@ -64,6 +66,10 @@ def _ratio(numerator: float | None, denominator: float | None) -> float | None:
 
 def _normalise(value: Any) -> str:
     return re.sub(r"[^a-z0-9]+", "_", str(value).lower()).strip("_")
+
+
+def _device_label(device_type: str) -> str:
+    return "PromethION" if device_type in PROMETHION_DEVICE_TYPES else "MinION"
 
 
 def _timestamp_seconds(value: Any) -> float | None:
@@ -305,7 +311,7 @@ class MinknowCollector:
         return int(match.group(1)), int(match.group(2))
 
     def active_positions(self) -> list[Any]:
-        """Return every active MinION position allowed by the CLI filter."""
+        """Return every active supported position allowed by the CLI filter."""
         try:
             positions = list(self._manager().flow_cell_positions())
         except Exception as exc:
@@ -316,14 +322,16 @@ class MinknowCollector:
         active = []
         for position in positions:
             device_type = str(getattr(position, "device_type", "")).upper()
-            if device_type not in MINION_DEVICE_TYPES:
+            if device_type not in SUPPORTED_DEVICE_TYPES:
                 continue
             if self.position_name and getattr(position, "name", None) != self.position_name:
                 continue
             if str(getattr(position, "protocol_state", "")).lower() == "protocol_running":
                 active.append(position)
         if not active:
-            raise NoActiveRunError("Waiting for an active MinION sequencing run in MinKNOW.")
+            raise NoActiveRunError(
+                "Waiting for an active MinION or PromethION sequencing run in MinKNOW."
+            )
         return sorted(active, key=lambda item: str(getattr(item, "name", "")))
 
     def inspect(self) -> dict[str, Any]:
@@ -331,12 +339,21 @@ class MinknowCollector:
         active = self.active_positions()
         if len(active) > 1:
             raise NoActiveRunError(
-                "More than one MinION run is active; select a position."
+                "More than one sequencing run is active; select a position."
             )
         return self.inspect_position(active[0])
 
     def inspect_position(self, position: Any) -> dict[str, Any]:
         """Return active-run metadata for one discovered position."""
+        device_api_type = str(getattr(position, "device_type", "")).upper()
+        device_label = _device_label(device_api_type)
+        prediction_available = device_api_type in MINION_DEVICE_TYPES
+        prediction_unavailable_reason = None
+        if not prediction_available:
+            prediction_unavailable_reason = (
+                "Calibrated final-yield prediction is not yet available for "
+                "PromethION because the current model was trained on MinION runs."
+            )
         try:
             connection = position.connect()
         except Exception as exc:
@@ -347,7 +364,7 @@ class MinknowCollector:
             version = connection.instance.get_version_info(_timeout=self.rpc_timeout)
         except Exception as exc:
             raise MinknowUnavailableError(
-                "Connected to the MinION position but could not read its MinKNOW version."
+                "Connected to the sequencing position but could not read its MinKNOW version."
             ) from exc
         major = int(getattr(version.minknow, "major", 0))
         minor = int(getattr(version.minknow, "minor", 0))
@@ -378,14 +395,16 @@ class MinknowCollector:
             code = getattr(exc, "code", lambda: None)()
             if str(code).endswith("FAILED_PRECONDITION"):
                 raise NoActiveRunError(
-                    "MinION protocol detected; waiting for the sequencing acquisition to start."
+                    f"{device_label} protocol detected; waiting for the sequencing "
+                    "acquisition to start."
                 ) from exc
             raise MinknowUnavailableError(
                 "Connected to MinKNOW but could not read the active acquisition."
             ) from exc
         if int(getattr(acquisition.config_summary, "purpose", 0)) == CALIBRATION_PURPOSE:
             raise NoActiveRunError(
-                "MinION calibration detected; waiting for the sequencing acquisition."
+                f"{device_label} calibration detected; waiting for the sequencing "
+                "acquisition."
             )
         if (
             collector_mode == "validated"
@@ -432,7 +451,10 @@ class MinknowCollector:
             "api_client_version": client_version,
             "collector_mode": collector_mode,
             "compatibility_warning": compatibility_warning,
-            "prediction_available": True,
+            "prediction_available": prediction_available,
+            "prediction_unavailable_reason": prediction_unavailable_reason,
+            "device_type": device_label,
+            "device_api_type": device_api_type,
             "output_path": output_path,
             "reads_directory": reads_directory,
             "bam_reads_enabled": bool(
@@ -452,6 +474,11 @@ class MinknowCollector:
         if horizon_minutes not in SUPPORTED_HORIZONS:
             raise ValueError(f"Unsupported checkpoint: {horizon_minutes} minutes")
         context = context or self.inspect()
+        if not context.get("prediction_available", True):
+            raise CheckpointNotReadyError(
+                context.get("prediction_unavailable_reason")
+                or "Calibrated prediction is unavailable for this device."
+            )
         connection = context["connection"]
         acquisition = context["acquisition"]
         run_id = context["run_id"]
@@ -716,7 +743,7 @@ class AdaptiveCollector:
         active = self.active_positions()
         if len(active) > 1:
             raise NoActiveRunError(
-                "More than one MinION or BAM run is active; select a position."
+                "More than one sequencing or BAM run is active; select a position."
             )
         return self.inspect_position(active[0])
 
@@ -735,6 +762,10 @@ class AdaptiveCollector:
                 raise
             context["collector_mode"] = "bam_fallback"
             context["prediction_available"] = False
+            context["prediction_unavailable_reason"] = (
+                "Calibrated final-yield prediction requires MinKNOW statistics that "
+                "are unavailable in BAM fallback mode."
+            )
             context["compatibility_warning"] = (
                 "The MinKNOW statistics API is incompatible; using completed BAM "
                 f"batches for live yield and CpGs ({type(exc).__name__})."
@@ -747,7 +778,8 @@ class AdaptiveCollector:
         context = context or self.inspect()
         if not context.get("prediction_available", True):
             raise CheckpointNotReadyError(
-                "Calibrated prediction requires compatible MinKNOW statistics."
+                context.get("prediction_unavailable_reason")
+                or "Calibrated prediction is unavailable for this device."
             )
         try:
             return self.minknow.collect(horizon_minutes, context)
@@ -756,6 +788,10 @@ class AdaptiveCollector:
         except Exception as exc:
             context["collector_mode"] = "bam_fallback"
             context["prediction_available"] = False
+            context["prediction_unavailable_reason"] = (
+                "Calibrated final-yield prediction requires MinKNOW statistics that "
+                "are unavailable in BAM fallback mode."
+            )
             context["compatibility_warning"] = (
                 "Some MinKNOW statistics required by the calibrated model are "
                 f"unavailable ({type(exc).__name__}); BAM monitoring remains active."
@@ -789,6 +825,9 @@ class _PositionMonitor:
         self._api_client_version: str | None = None
         self._collector_mode = "connecting"
         self._prediction_available = True
+        self._prediction_unavailable_reason: str | None = None
+        self._device_type = "Nanopore"
+        self._device_api_type: str | None = None
         self._rows: dict[int, dict[str, Any]] = {}
         self._assessments: dict[int, dict[str, Any]] = {}
         self._live_progress: dict[str, float] | None = None
@@ -859,6 +898,11 @@ class _PositionMonitor:
             self._prediction_available = bool(
                 context.get("prediction_available", True)
             )
+            self._prediction_unavailable_reason = context.get(
+                "prediction_unavailable_reason"
+            )
+            self._device_type = context.get("device_type", "Nanopore")
+            self._device_api_type = context.get("device_api_type")
             self._warning = context.get("compatibility_warning")
 
         self._cpg_monitor.update_context(context)
@@ -885,7 +929,11 @@ class _PositionMonitor:
                 ):
                     self._target_reached_seconds = live_progress["observed_seconds"]
 
-        eligible = [h for h in SUPPORTED_HORIZONS if elapsed >= h * 60]
+        eligible = (
+            [h for h in SUPPORTED_HORIZONS if elapsed >= h * 60]
+            if context.get("prediction_available", True)
+            else []
+        )
         for horizon in eligible:
             with self._lock:
                 missing = horizon not in self._rows
@@ -911,14 +959,20 @@ class _PositionMonitor:
             self._prediction_available = bool(
                 context.get("prediction_available", self._prediction_available)
             )
+            self._prediction_unavailable_reason = context.get(
+                "prediction_unavailable_reason",
+                self._prediction_unavailable_reason,
+            )
             self._warning = context.get("compatibility_warning")
             current = max(self._rows, default=None)
             self._state = "complete" if current == SUPPORTED_HORIZONS[-1] else "running"
             next_horizon = next((h for h in SUPPORTED_HORIZONS if h not in self._rows), None)
             if not self._prediction_available:
+                reason = self._prediction_unavailable_reason or (
+                    "Calibrated final-yield prediction is unavailable."
+                )
                 self._message = (
-                    "BAM fallback active: live yield and NanoDx CpGs are available; "
-                    "calibrated final-yield prediction is unavailable."
+                    f"{reason} Live yield and NanoDx CpGs remain available."
                 )
             else:
                 self._message = (
@@ -938,6 +992,9 @@ class _PositionMonitor:
             self._api_client_version = None
             self._collector_mode = "waiting"
             self._prediction_available = True
+            self._prediction_unavailable_reason = None
+            self._device_type = "Nanopore"
+            self._device_api_type = None
             self._rows.clear()
             self._assessments.clear()
             self._live_progress = None
@@ -1025,8 +1082,11 @@ class _PositionMonitor:
             return {
                 "mode": "minknow",
                 "state": self._state,
-                "sample_id": "Live MinION run" if self._run_key else None,
-                "device_type": "MinION",
+                "sample_id": (
+                    f"Live {self._device_type} run" if self._run_key else None
+                ),
+                "device_type": self._device_type,
+                "device_api_type": self._device_api_type,
                 "target_gb": self._target_gb,
                 "elapsed_minutes": self._elapsed_seconds / 60.0,
                 "current_horizon_minutes": current,
@@ -1056,14 +1116,15 @@ class _PositionMonitor:
                 "api_client_version": self._api_client_version,
                 "collector_mode": self._collector_mode,
                 "prediction_available": self._prediction_available,
+                "prediction_unavailable_reason": self._prediction_unavailable_reason,
                 "minknow_core_target": "automatic with BAM fallback",
-                "device_target": "MinION",
+                "device_target": "MinION prediction; PromethION monitoring",
                 "read_only": True,
             }
 
 
 class LiveMonitor:
-    """Supervise every active MinION position from one background thread."""
+    """Supervise every active supported position from one background thread."""
 
     def __init__(
         self,
@@ -1162,7 +1223,10 @@ class LiveMonitor:
         with self._lock:
             self._state = "running"
             count = len(self._monitors)
-            self._message = f"Monitoring {count} active MinION position{'s' if count != 1 else ''}."
+            self._message = (
+                f"Monitoring {count} active Nanopore position"
+                f"{'s' if count != 1 else ''}."
+            )
             self._warning = None
             self._last_update = datetime.now(timezone.utc).isoformat()
 
@@ -1175,10 +1239,12 @@ class LiveMonitor:
             names = sorted(self._monitors)
             if position_name is None:
                 if len(names) > 1:
-                    raise ValueError("Select a MinION position before applying the target")
+                    raise ValueError(
+                        "Select a sequencing position before applying the target"
+                    )
                 position_name = names[0] if names else None
             if position_name is not None and position_name not in self._monitors:
-                raise ValueError(f"Active MinION position not found: {position_name}")
+                raise ValueError(f"Active sequencing position not found: {position_name}")
             if position_name is None:
                 self._default_target_gb = float(target_gb)
                 return self.status()
@@ -1204,6 +1270,8 @@ class LiveMonitor:
         nanodx_cpg = status.get("nanodx_cpg") or {}
         return {
             "position_name": name,
+            "device_type": status.get("device_type", "Nanopore"),
+            "device_api_type": status.get("device_api_type"),
             "state": status["state"],
             "target_gb": status["target_gb"],
             "elapsed_minutes": status["elapsed_minutes"],
@@ -1224,6 +1292,9 @@ class LiveMonitor:
             "nanodx_cpg_eta_minutes": nanodx_cpg.get("eta_minutes"),
             "collector_mode": status.get("collector_mode"),
             "prediction_available": status.get("prediction_available", True),
+            "prediction_unavailable_reason": status.get(
+                "prediction_unavailable_reason"
+            ),
             "message": status["message"],
         }
 
@@ -1253,7 +1324,8 @@ class LiveMonitor:
                 "state": state,
                 "sample_id": None,
                 "position_name": None,
-                "device_type": "MinION",
+                "device_type": "Nanopore",
+                "device_api_type": None,
                 "target_gb": default_target,
                 "elapsed_minutes": 0.0,
                 "current_horizon_minutes": None,
@@ -1270,8 +1342,9 @@ class LiveMonitor:
                 "api_client_version": MinknowCollector.client_version(),
                 "collector_mode": "connecting",
                 "prediction_available": True,
+                "prediction_unavailable_reason": None,
                 "minknow_core_target": "automatic with BAM fallback",
-                "device_target": "MinION",
+                "device_target": "MinION prediction; PromethION monitoring",
                 "read_only": True,
                 **common,
             }
