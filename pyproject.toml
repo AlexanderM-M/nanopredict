@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "nanopredict"
-version = "0.7.0"
-description = "Local calibrated Nanopore yield prediction dashboard"
+version = "0.8.0"
+description = "Live Nanopore monitoring and calibrated MinION yield prediction dashboard"
 readme = "README.md"
 license = "GPL-3.0-only"
 license-files = ["LICENSE", "THIRD_PARTY_NOTICES.md"]

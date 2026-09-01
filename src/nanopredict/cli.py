@@ -107,7 +107,7 @@ def _start_background(
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="nanopredict",
-        description="Start the local Nanopore yield prediction dashboard.",
+        description="Start the local Nanopore sequencing dashboard.",
     )
     parser.add_argument(
         "command", nargs="?", default="start", choices=("start", "status", "stop", "_serve")
