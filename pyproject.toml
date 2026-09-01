@@ -9,6 +9,7 @@ description = "Local calibrated Nanopore yield prediction dashboard"
 readme = "README.md"
 license = "GPL-3.0-only"
 license-files = ["LICENSE", "THIRD_PARTY_NOTICES.md"]
+keywords = ["nanopore", "MinION", "MinKNOW", "sequencing", "bioinformatics"]
 requires-python = ">=3.9,<3.13"
 dependencies = [
   "bamnostic==1.3",
@@ -28,6 +29,12 @@ classifiers = [
   "Programming Language :: Python :: 3.12",
   "Topic :: Scientific/Engineering :: Bio-Informatics",
 ]
+
+[project.urls]
+Homepage = "https://github.com/AlexanderM-M/nanopredict"
+Documentation = "https://github.com/AlexanderM-M/nanopredict#readme"
+Issues = "https://github.com/AlexanderM-M/nanopredict/issues"
+Source = "https://github.com/AlexanderM-M/nanopredict"
 
 [project.scripts]
 nanopredict = "nanopredict.cli:main"
