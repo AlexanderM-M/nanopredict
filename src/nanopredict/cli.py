@@ -110,7 +110,10 @@ def build_parser() -> argparse.ArgumentParser:
         description="Start the local Nanopore sequencing dashboard.",
     )
     parser.add_argument(
-        "command", nargs="?", default="start", choices=("start", "status", "stop", "_serve")
+        "command",
+        nargs="?",
+        default="start",
+        choices=("start", "status", "stop", "doctor", "_serve"),
     )
     parser.add_argument("--port", type=int, default=DEFAULT_PORT)
     parser.add_argument("--no-browser", action="store_true")
@@ -138,12 +141,26 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Use anonymous historical runs (alias for --source replay).",
     )
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Print machine-readable output for nanopredict doctor",
+    )
     return parser
 
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     source = "replay" if args.replay else args.source
+    if args.command == "doctor":
+        from .doctor import run_doctor
+
+        return run_doctor(
+            host=args.minknow_host,
+            position_name=args.position,
+            bam_dir=args.bam_dir,
+            as_json=args.json,
+        )
     if not 1024 <= args.port <= 65535:
         print("Port must be between 1024 and 65535.", file=sys.stderr)
         return 2

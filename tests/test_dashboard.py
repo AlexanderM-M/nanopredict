@@ -119,13 +119,20 @@ class PositionApiTests(unittest.TestCase):
                 self.status_position = None
                 self.configuration = None
 
-            def status(self, position_name=None):
-                self.status_position = position_name
-                return {"selected_position": position_name}
+            def status(self, position_name=None, barcode_name=None):
+                self.status_position = (position_name, barcode_name)
+                return {
+                    "selected_position": position_name,
+                    "selected_barcode": barcode_name,
+                }
 
-            def configure(self, target_gb, position_name=None):
-                self.configuration = (target_gb, position_name)
-                return {"target_gb": target_gb, "selected_position": position_name}
+            def configure(self, target_gb, position_name=None, barcode_name=None):
+                self.configuration = (target_gb, position_name, barcode_name)
+                return {
+                    "target_gb": target_gb,
+                    "selected_position": position_name,
+                    "selected_barcode": barcode_name,
+                }
 
         application = FakeApplication()
         handler_type = make_handler(application)
@@ -133,19 +140,20 @@ class PositionApiTests(unittest.TestCase):
         sent = []
         handler._send_json = lambda payload, status=200: sent.append((payload, status))
 
-        handler.path = "/api/status?position=MN22222"
+        handler.path = "/api/status?position=MN22222&barcode=barcode02"
         handler.do_GET()
         self.assertEqual(sent[-1][0]["selected_position"], "MN22222")
-        self.assertEqual(application.status_position, "MN22222")
+        self.assertEqual(application.status_position, ("MN22222", "barcode02"))
 
         handler.path = "/api/configure"
         handler._read_json = lambda: {
             "target_gb": 15,
             "position_name": "MN22222",
+            "barcode_name": "barcode02",
         }
         handler.do_POST()
         self.assertEqual(sent[-1][0]["target_gb"], 15)
-        self.assertEqual(application.configuration, (15.0, "MN22222"))
+        self.assertEqual(application.configuration, (15.0, "MN22222", "barcode02"))
 
 
 if __name__ == "__main__":

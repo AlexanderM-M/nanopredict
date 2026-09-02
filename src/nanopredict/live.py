@@ -18,6 +18,7 @@ from .bam_fallback import (
     BamPosition,
 )
 from .diagnose_run import RunDecisionEngine
+from .health import evaluate_run_health
 from .nanodx_cpg import NanoDxCpgMonitor, NanoDxTargets, default_nanodx_targets
 from .replay import SUPPORTED_HORIZONS
 
@@ -406,20 +407,20 @@ class MinknowCollector:
                 f"{device_label} calibration detected; waiting for the sequencing "
                 "acquisition."
             )
-        if (
-            collector_mode == "validated"
-            and not bool(getattr(acquisition.config_summary, "basecalling_enabled", False))
-        ):
-            raise MinknowUnavailableError(
-                "The active run has live basecalling disabled; passed-yield prediction "
-                "requires basecalling."
-            )
         started = _timestamp_seconds(getattr(acquisition, "start_time", None))
         if not started:
             started = _timestamp_seconds(getattr(acquisition, "data_read_start_time", None))
         elapsed = 0.0 if started is None else max(time.time() - started, 0.0)
         run_id = str(acquisition.run_id)
         config_summary = acquisition.config_summary
+        basecalling_enabled = bool(
+            getattr(config_summary, "basecalling_enabled", False)
+        )
+        if not basecalling_enabled:
+            prediction_available = False
+            prediction_unavailable_reason = (
+                "Calibrated final-yield prediction requires live basecalling."
+            )
         output_path = None
         try:
             protocol_response = connection.protocol.get_current_protocol_run(
@@ -457,6 +458,7 @@ class MinknowCollector:
             "device_api_type": device_api_type,
             "output_path": output_path,
             "reads_directory": reads_directory,
+            "basecalling_enabled": basecalling_enabled,
             "bam_reads_enabled": bool(
                 getattr(config_summary, "bam_reads_enabled", False)
             ) or bam_on_disk,
@@ -645,6 +647,9 @@ class MinknowCollector:
             )
         return {
             "observed_seconds": float(latest.seconds),
+            "estimated_bases": _field_number(
+                summary, "estimated_selected_bases", "estimated_bases"
+            ),
             "passed_bases": passed,
             "failed_bases": _field_number(
                 summary, "basecalled_fail_bases", "failed_bases"
@@ -817,6 +822,7 @@ class _PositionMonitor:
         self.engine = engine
         self.poll_seconds = poll_seconds
         self._target_gb = 10.0
+        self._barcode_targets: dict[str, float] = {}
         self._lock = threading.RLock()
         self._stop_event = threading.Event()
         self._run_key: str | None = None
@@ -837,6 +843,7 @@ class _PositionMonitor:
         self._message = "Connecting to local MinKNOW."
         self._last_update: str | None = None
         self._warning: str | None = None
+        self._health_context: dict[str, Any] = {}
         self._cpg_monitor = NanoDxCpgMonitor(
             cpg_targets or default_nanodx_targets(),
             poll_seconds=poll_seconds,
@@ -847,10 +854,15 @@ class _PositionMonitor:
             self._thread = threading.Thread(target=self._run, daemon=True, name="nanopredict-live")
             self._thread.start()
 
-    def configure(self, target_gb: float) -> dict[str, Any]:
+    def configure(
+        self, target_gb: float, barcode_name: str | None = None
+    ) -> dict[str, Any]:
         if not math.isfinite(target_gb) or target_gb <= 0:
             raise ValueError("Target yield must be a positive number")
         with self._lock:
+            if barcode_name:
+                self._barcode_targets[barcode_name] = float(target_gb)
+                return self.status(barcode_name)
             self._target_gb = float(target_gb)
             self._assessments = {
                 horizon: self.engine.assess(row, horizon, self._target_gb)
@@ -891,6 +903,7 @@ class _PositionMonitor:
                 self._live_progress = None
                 self._progress_history.clear()
                 self._target_reached_seconds = None
+                self._barcode_targets.clear()
             self._elapsed_seconds = elapsed
             self._minknow_version = context["minknow_version"]
             self._api_client_version = context.get("api_client_version")
@@ -904,11 +917,27 @@ class _PositionMonitor:
             self._device_type = context.get("device_type", "Nanopore")
             self._device_api_type = context.get("device_api_type")
             self._warning = context.get("compatibility_warning")
+            self._health_context = {
+                key: context.get(key)
+                for key in (
+                    "elapsed_seconds",
+                    "basecalling_enabled",
+                    "bam_reads_enabled",
+                    "alignment_enabled",
+                    "reads_directory",
+                    "output_path",
+                    "collector_mode",
+                )
+            }
 
         self._cpg_monitor.update_context(context)
 
         try:
-            live_progress = self.collector.collect_live_progress(context)
+            live_progress = (
+                None
+                if context.get("basecalling_enabled") is False
+                else self.collector.collect_live_progress(context)
+            )
         except CheckpointNotReadyError:
             live_progress = None
         if live_progress is not None:
@@ -964,6 +993,20 @@ class _PositionMonitor:
                 self._prediction_unavailable_reason,
             )
             self._warning = context.get("compatibility_warning")
+            self._health_context.update(
+                {
+                    key: context.get(key)
+                    for key in (
+                        "elapsed_seconds",
+                        "basecalling_enabled",
+                        "bam_reads_enabled",
+                        "alignment_enabled",
+                        "reads_directory",
+                        "output_path",
+                        "collector_mode",
+                    )
+                }
+            )
             current = max(self._rows, default=None)
             self._state = "complete" if current == SUPPORTED_HORIZONS[-1] else "running"
             next_horizon = next((h for h in SUPPORTED_HORIZONS if h not in self._rows), None)
@@ -1000,6 +1043,8 @@ class _PositionMonitor:
             self._live_progress = None
             self._progress_history.clear()
             self._target_reached_seconds = None
+            self._barcode_targets.clear()
+            self._health_context = {}
             self._cpg_monitor.set_waiting()
             self._last_update = datetime.now(timezone.utc).isoformat()
 
@@ -1016,7 +1061,7 @@ class _PositionMonitor:
             self._thread.join(timeout=min(self.poll_seconds + 1, 5))
         self._cpg_monitor.close()
 
-    def status(self) -> dict[str, Any]:
+    def status(self, barcode_name: str | None = None) -> dict[str, Any]:
         with self._lock:
             current = max(self._rows, default=None)
             row = self._rows.get(current) if current is not None else None
@@ -1079,22 +1124,101 @@ class _PositionMonitor:
                         else self._target_reached_seconds / 60.0
                     ),
                 }
+            cpg_status = self._cpg_monitor.status()
+            barcode_rows = {
+                str(item["barcode"]): item
+                for item in cpg_status.get("barcodes", [])
+            }
+            selected_barcode = (
+                barcode_name if barcode_name in barcode_rows else None
+            )
+            response_target_gb = (
+                self._barcode_targets.get(selected_barcode, self._target_gb)
+                if selected_barcode
+                else self._target_gb
+            )
+            response_prediction_available = self._prediction_available
+            response_prediction_reason = self._prediction_unavailable_reason
+            response_message = self._message
+            response_current = current
+            response_next = next_horizon
+            response_assessment = assessment
+            if selected_barcode is not None:
+                barcode = barcode_rows[selected_barcode]
+                cpg_status = {**cpg_status, **barcode, "barcodes": list(barcode_rows.values())}
+                passed_bases = float(barcode["passed_bases"])
+                target_bases = response_target_gb * 1e9
+                remaining_bases = max(target_bases - passed_bases, 0.0)
+                rate_per_minute = barcode.get("rate_bases_per_minute")
+                target_reached = passed_bases >= target_bases
+                live_progress = {
+                    "observed_seconds": self._elapsed_seconds,
+                    "passed_bases": passed_bases,
+                    "failed_bases": float(barcode.get("failed_bases", 0)),
+                    "total_reads": float(barcode.get("reads_scanned", 0)),
+                    "passed_reads": None,
+                    "passed_yield_gb": passed_bases / 1e9,
+                    "target_bases": target_bases,
+                    "progress_fraction": min(passed_bases / target_bases, 1.0),
+                    "progress_percent": min(
+                        passed_bases * 100.0 / target_bases, 100.0
+                    ),
+                    "remaining_bases": remaining_bases,
+                    "rate_bases_per_minute": rate_per_minute,
+                    "eta_minutes": (
+                        0.0
+                        if target_reached
+                        else remaining_bases / rate_per_minute
+                        if rate_per_minute
+                        else None
+                    ),
+                    "target_reached": target_reached,
+                    "target_reached_elapsed_minutes": None,
+                    "source": "completed_bam_batches",
+                }
+                observations = {
+                    "passed_yield_gb": passed_bases / 1e9,
+                    "total_reads": float(barcode.get("reads_scanned", 0)),
+                    "temperature_c": (
+                        observations.get("temperature_c") if observations else None
+                    ),
+                    "sequencing_percent": None,
+                    "pore_available_percent": None,
+                }
+                response_prediction_available = False
+                response_prediction_reason = (
+                    "Calibrated prediction is currently run-level and is not applied "
+                    "to an individual barcode."
+                )
+                response_message = (
+                    f"Monitoring {selected_barcode} from completed BAM batches."
+                )
+                response_current = None
+                response_next = None
+                response_assessment = None
+            live_problems = evaluate_run_health(
+                self._health_context, cpg_status, live_progress
+            )
             return {
                 "mode": "minknow",
                 "state": self._state,
                 "sample_id": (
-                    f"Live {self._device_type} run" if self._run_key else None
+                    selected_barcode
+                    or (f"Live {self._device_type} run" if self._run_key else None)
                 ),
                 "device_type": self._device_type,
                 "device_api_type": self._device_api_type,
-                "target_gb": self._target_gb,
+                "target_gb": response_target_gb,
                 "elapsed_minutes": self._elapsed_seconds / 60.0,
-                "current_horizon_minutes": current,
-                "next_horizon_minutes": next_horizon,
+                "current_horizon_minutes": response_current,
+                "next_horizon_minutes": response_next,
                 "observations": observations,
                 "live_progress": live_progress,
-                "nanodx_cpg": self._cpg_monitor.status(),
-                "assessment": assessment,
+                "nanodx_cpg": cpg_status,
+                "available_barcodes": sorted(barcode_rows),
+                "selected_barcode": selected_barcode,
+                "live_problems": live_problems,
+                "assessment": response_assessment,
                 "history": [
                     {
                         "horizon_minutes": horizon,
@@ -1109,14 +1233,14 @@ class _PositionMonitor:
                     for horizon in sorted(self._assessments)
                 ],
                 "actual_final_gb": None,
-                "message": self._message,
+                "message": response_message,
                 "warning": self._warning,
                 "last_update": self._last_update,
                 "minknow_version": self._minknow_version,
                 "api_client_version": self._api_client_version,
                 "collector_mode": self._collector_mode,
-                "prediction_available": self._prediction_available,
-                "prediction_unavailable_reason": self._prediction_unavailable_reason,
+                "prediction_available": response_prediction_available,
+                "prediction_unavailable_reason": response_prediction_reason,
                 "minknow_core_target": "automatic with BAM fallback",
                 "device_target": "MinION prediction; PromethION monitoring",
                 "read_only": True,
@@ -1231,7 +1355,10 @@ class LiveMonitor:
             self._last_update = datetime.now(timezone.utc).isoformat()
 
     def configure(
-        self, target_gb: float, position_name: str | None = None
+        self,
+        target_gb: float,
+        position_name: str | None = None,
+        barcode_name: str | None = None,
     ) -> dict[str, Any]:
         if not math.isfinite(target_gb) or target_gb <= 0:
             raise ValueError("Target yield must be a positive number")
@@ -1247,10 +1374,10 @@ class LiveMonitor:
                 raise ValueError(f"Active sequencing position not found: {position_name}")
             if position_name is None:
                 self._default_target_gb = float(target_gb)
-                return self.status()
+                return self.status(barcode_name=barcode_name)
             monitor = self._monitors[position_name]
-        monitor.configure(target_gb)
-        return self.status(position_name)
+        monitor.configure(target_gb, barcode_name)
+        return self.status(position_name, barcode_name)
 
     def close(self) -> None:
         self._stop_event.set()
@@ -1295,10 +1422,19 @@ class LiveMonitor:
             "prediction_unavailable_reason": status.get(
                 "prediction_unavailable_reason"
             ),
+            "problem_count": len(status.get("live_problems") or []),
+            "high_problem_count": sum(
+                item.get("severity") == "high"
+                for item in status.get("live_problems") or []
+            ),
             "message": status["message"],
         }
 
-    def status(self, position_name: str | None = None) -> dict[str, Any]:
+    def status(
+        self,
+        position_name: str | None = None,
+        barcode_name: str | None = None,
+    ) -> dict[str, Any]:
         with self._lock:
             names = sorted(self._monitors)
             monitors = [(name, self._monitors[name]) for name in names]
@@ -1333,6 +1469,9 @@ class LiveMonitor:
                 "observations": None,
                 "live_progress": None,
                 "assessment": None,
+                "available_barcodes": [],
+                "selected_barcode": None,
+                "live_problems": [],
                 "history": [],
                 "actual_final_gb": None,
                 "message": message,
@@ -1349,10 +1488,11 @@ class LiveMonitor:
                 **common,
             }
 
-        result = detailed[selected]
+        monitor_by_name = dict(monitors)
+        result = dict(monitor_by_name[selected].status(barcode_name))
         result.update(
             {
-                "sample_id": selected,
+                "sample_id": result.get("selected_barcode") or selected,
                 "position_name": selected,
                 **common,
             }

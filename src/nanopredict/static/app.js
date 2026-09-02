@@ -5,6 +5,8 @@ const elements = {
   sampleControl: document.getElementById('sampleControl'),
   positionControl: document.getElementById('positionControl'),
   positionList: document.getElementById('positionList'),
+  barcodeControl: document.getElementById('barcodeControl'),
+  barcode: document.getElementById('barcodeSelect'),
   target: document.getElementById('targetInput'),
   targetEquivalent: document.getElementById('targetEquivalent'),
   speed: document.getElementById('speedSelect'),
@@ -22,6 +24,7 @@ const elements = {
   waitingCopy: document.getElementById('waitingCopy'),
   run: document.getElementById('runState'),
   sampleName: document.getElementById('sampleName'),
+  deviceName: document.getElementById('deviceName'),
   runMode: document.getElementById('runMode'),
   runMessage: document.getElementById('runMessage'),
   statusBadge: document.getElementById('statusBadge'),
@@ -67,7 +70,8 @@ let currentMode = null;
 let runsLoaded = false;
 let toastTimer;
 let selectedPosition = null;
-let displayedPosition = null;
+let selectedBarcode = null;
+let displayedScope = null;
 let refreshToken = 0;
 
 function number(value, digits = 1) {
@@ -213,8 +217,11 @@ function renderPositions(data) {
     const cpgSummary = position.nanodx_cpg_count !== null && position.nanodx_cpg_count !== undefined
       ? ` · ${position.nanodx_cpg_count}/${position.nanodx_cpg_threshold || 180} CpGs${cpgEtaSummary}`
       : '';
+    const problemSummary = position.problem_count
+      ? ` · ${position.problem_count} problem${position.problem_count === 1 ? '' : 's'}`
+      : '';
     detail.textContent = position.passed_bases !== null && position.passed_bases !== undefined
-      ? `${compactNumber(position.passed_bases)} bases · ${number(position.progress_percent, 0)}% of target${cpgSummary}`
+      ? `${compactNumber(position.passed_bases)} bases · ${number(position.progress_percent, 0)}% of target${cpgSummary}${problemSummary}`
       : position.prediction_available === false
         ? `${position.collector_mode === 'bam_fallback' ? 'BAM' : position.device_type || 'Live'} monitoring${cpgSummary}`
       : position.current_horizon_minutes
@@ -227,6 +234,8 @@ function renderPositions(data) {
     const state = document.createElement('span');
     const label = ['error', 'waiting'].includes(position.state)
       ? position.state
+      : position.high_problem_count
+        ? 'check'
       : position.target_reached
         ? 'reached'
         : position.assessment_status || position.state || 'connecting';
@@ -236,18 +245,46 @@ function renderPositions(data) {
     button.addEventListener('click', () => {
       if (selectedPosition === position.position_name) return;
       selectedPosition = position.position_name;
+      selectedBarcode = null;
       refresh();
     });
     elements.positionList.append(button);
   });
 }
 
-function renderProblems(items) {
+function renderBarcodes(data) {
+  const barcodes = Array.isArray(data.available_barcodes) ? data.available_barcodes : [];
+  const live = data.mode === 'minknow';
+  elements.barcodeControl.classList.toggle('hidden', !live || barcodes.length === 0);
+  if (!live || barcodes.length === 0) {
+    selectedBarcode = null;
+    return;
+  }
+  selectedBarcode = data.selected_barcode && barcodes.includes(data.selected_barcode)
+    ? data.selected_barcode
+    : null;
+  elements.barcode.replaceChildren();
+  const all = document.createElement('option');
+  all.value = '';
+  all.textContent = 'All barcodes';
+  elements.barcode.append(all);
+  barcodes.forEach(barcode => {
+    const option = document.createElement('option');
+    option.value = barcode;
+    option.textContent = barcode;
+    elements.barcode.append(option);
+  });
+  elements.barcode.value = selectedBarcode || '';
+}
+
+function renderProblems(items, live = false) {
   elements.problems.replaceChildren();
   if (!items || items.length === 0) {
     const clear = document.createElement('div');
     clear.className = 'no-problems';
-    clear.textContent = 'No extreme peer-based QC anomaly detected at this checkpoint.';
+    clear.textContent = live
+      ? 'No current run problem detected.'
+      : 'No extreme peer-based QC anomaly detected at this checkpoint.';
     elements.problems.append(clear);
     return;
   }
@@ -260,6 +297,17 @@ function renderProblems(items) {
     const title = document.createElement('h4');
     title.textContent = item.title;
     content.append(title);
+    if (item.detail) {
+      const detail = document.createElement('p');
+      detail.textContent = item.detail;
+      content.append(detail);
+    }
+    if (item.action) {
+      const action = document.createElement('p');
+      action.className = 'problem-action';
+      action.textContent = `Action: ${item.action}`;
+      content.append(action);
+    }
     row.append(marker, content);
     elements.problems.append(row);
   });
@@ -354,9 +402,11 @@ function renderStatus(data) {
     data.device_type,
   );
   renderPositions(data);
+  renderBarcodes(data);
   const live = data.mode === 'minknow';
-  if (live && data.position_name && data.position_name !== displayedPosition) {
-    displayedPosition = data.position_name;
+  const displayScope = live ? `${data.position_name || ''}:${data.selected_barcode || ''}` : null;
+  if (live && data.position_name && displayScope !== displayedScope) {
+    displayedScope = displayScope;
     elements.target.value = data.target_gb;
     renderTargetEquivalent();
   }
@@ -377,6 +427,7 @@ function renderStatus(data) {
   }
 
   elements.sampleName.textContent = data.sample_id || 'Live Nanopore run';
+  elements.deviceName.textContent = data.device_type || 'Nanopore';
   elements.runMessage.textContent = data.message;
   elements.targetValue.textContent = `Target: ${number(data.target_gb)} GB`;
   elements.advance.disabled = live || data.state === 'complete' || data.state === 'stopped';
@@ -410,7 +461,6 @@ function renderStatus(data) {
     elements.explanation.textContent = data.prediction_available === false
       ? `${predictionReason} Live passed yield and NanoDx CpGs remain available.`
       : 'Prediction available at 30 minutes.';
-    elements.problems.replaceChildren();
   } else {
     const prediction = assessment.prediction;
     const interval = prediction.prediction_intervals['90'];
@@ -426,8 +476,14 @@ function renderStatus(data) {
     elements.probabilityRing.style.setProperty('--probability', `${probability * 360}deg`);
     elements.confidence.textContent = `${assessment.status_confidence} confidence`;
     elements.explanation.textContent = assessment.status_explanation;
-    renderProblems(assessment.suspected_problems);
   }
+  const problems = [
+    ...(Array.isArray(data.live_problems) ? data.live_problems : []),
+    ...(assessment && Array.isArray(assessment.suspected_problems)
+      ? assessment.suspected_problems
+      : []),
+  ];
+  renderProblems(problems, live);
 
   const complete = !live && data.state === 'complete' && data.actual_final_gb !== null;
   elements.outcome.classList.toggle('hidden', !complete);
@@ -451,9 +507,14 @@ async function loadRuns() {
 async function refresh() {
   const token = ++refreshToken;
   try {
-    const query = currentMode === 'minknow' && selectedPosition
-      ? `?position=${encodeURIComponent(selectedPosition)}`
-      : '';
+    const parameters = new URLSearchParams();
+    if (currentMode === 'minknow' && selectedPosition) {
+      parameters.set('position', selectedPosition);
+    }
+    if (currentMode === 'minknow' && selectedBarcode) {
+      parameters.set('barcode', selectedBarcode);
+    }
+    const query = parameters.toString() ? `?${parameters}` : '';
     const status = await api(`/api/status${query}`);
     if (token !== refreshToken) return;
     setConnected(true);
@@ -470,7 +531,11 @@ elements.start.addEventListener('click', async () => {
     const live = currentMode === 'minknow';
     const result = await api(live ? '/api/configure' : '/api/start', {
       method: 'POST',
-      body: JSON.stringify(live ? { target_gb: target, position_name: selectedPosition } : {
+      body: JSON.stringify(live ? {
+        target_gb: target,
+        position_name: selectedPosition,
+        barcode_name: selectedBarcode
+      } : {
         sample_id: elements.sample.value,
         target_gb: target,
         seconds_per_step: Number(elements.speed.value)
@@ -484,6 +549,11 @@ elements.start.addEventListener('click', async () => {
 });
 
 elements.target.addEventListener('input', renderTargetEquivalent);
+
+elements.barcode.addEventListener('change', () => {
+  selectedBarcode = elements.barcode.value || null;
+  refresh();
+});
 
 elements.advance.addEventListener('click', async () => {
   try { renderStatus(await api('/api/advance', { method: 'POST', body: '{}' })); }

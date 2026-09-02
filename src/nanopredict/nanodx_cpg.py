@@ -11,7 +11,7 @@ import re
 import tempfile
 import threading
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from functools import lru_cache
 from pathlib import Path
@@ -27,12 +27,13 @@ NANODX_MODEL = "Capper_et_al"
 TARGET_ASSEMBLY = "hg38"
 EXPECTED_HG38_FEATURES = 366_217
 HG38_CHR1_LENGTH = 248_956_422
-_STATE_VERSION = 1
+_STATE_VERSION = 2
 _TARGET_VERSION = "6d2ad818b2b63bc4f6b5320b2348fcbc2d4198f2e173318a23f84e5aaaef6e8d"
 _BGZF_EOF = bytes.fromhex(
     "1f8b08040000000000ff0600424302001b0003000000000000000000"
 )
 _MM_GROUP = re.compile(r"^([ACGTUN])([+-])([a-z]+|[0-9]+)([.?]?)(?:,(.*))?$")
+_BARCODE_PATTERN = re.compile(r"(?<![a-z0-9])(barcode\d{1,3}|unclassified)(?![a-z0-9])", re.I)
 
 
 def _normalise_chromosome(name: str) -> str:
@@ -88,6 +89,56 @@ class FileScan:
     confidence_histogram: list[int]
     reads: int
     tagged_reads: int
+    barcodes: dict[str, "BarcodeFileScan"] = field(default_factory=dict)
+
+
+@dataclass
+class BarcodeFileScan:
+    covered: dict[int, int] = field(default_factory=dict)
+    confidence_histogram: list[int] = field(default_factory=lambda: [0] * 256)
+    reads: int = 0
+    tagged_reads: int = 0
+    passed_bases: int = 0
+    failed_bases: int = 0
+
+
+def _normalise_barcode(value: Any) -> str | None:
+    match = _BARCODE_PATTERN.search(str(value or ""))
+    return match.group(1).lower() if match else None
+
+
+def _path_barcode(path: Path) -> str | None:
+    for part in reversed(Path(path).parts):
+        barcode = _normalise_barcode(part)
+        if barcode:
+            return barcode
+    return None
+
+
+def _read_barcode(read: Any, fallback: str | None) -> str | None:
+    for tag in ("BC", "RG"):
+        try:
+            barcode = _normalise_barcode(read.get_tag(tag))
+        except (KeyError, TypeError, ValueError):
+            continue
+        if barcode:
+            return barcode
+    return fallback
+
+
+def _read_length(read: Any) -> int:
+    sequence = getattr(read, "query_sequence", None)
+    if sequence and sequence != "*":
+        return len(sequence)
+    try:
+        return max(int(getattr(read, "query_length", 0)), 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _failed_bam(path: Path) -> bool:
+    lowered = {part.lower() for part in Path(path).parts}
+    return "bam_fail" in lowered or "fail" in Path(path).name.lower()
 
 
 def _tag(read: Any, primary: str, legacy: str) -> Any:
@@ -235,10 +286,23 @@ def scan_bam(
     histogram = [0] * 256
     reads = 0
     tagged_reads = 0
+    barcodes: dict[str, BarcodeFileScan] = {}
+    fallback_barcode = _path_barcode(path)
+    failed_bam = _failed_bam(path)
     with opener(str(path), "rb") as alignment:
         _validate_hg38_alignment(alignment)
         for read in alignment:
             reads += 1
+            barcode = _read_barcode(read, fallback_barcode)
+            barcode_scan = None
+            if barcode:
+                barcode_scan = barcodes.setdefault(barcode, BarcodeFileScan())
+                barcode_scan.reads += 1
+                if not read.is_secondary and not read.is_supplementary:
+                    if failed_bam:
+                        barcode_scan.failed_bases += _read_length(read)
+                    else:
+                        barcode_scan.passed_bases += _read_length(read)
             if read.is_unmapped or read.is_secondary or read.is_supplementary:
                 continue
             try:
@@ -248,8 +312,12 @@ def scan_bam(
             if not calls:
                 continue
             tagged_reads += 1
+            if barcode_scan is not None:
+                barcode_scan.tagged_reads += 1
             for confidence in calls.values():
                 histogram[confidence] += 1
+                if barcode_scan is not None:
+                    barcode_scan.confidence_histogram[confidence] += 1
             stored_positions = {
                 (len(read.query_sequence) - 1 - position) if read.is_reverse else position
                 for position in calls
@@ -269,7 +337,11 @@ def scan_bam(
                 cpg_start = reference_position - 1 if read.is_reverse else reference_position
                 for feature in targets.probes_at(read.reference_name, cpg_start):
                     covered[feature] = max(covered.get(feature, 0), confidence)
-    return FileScan(covered, histogram, reads, tagged_reads)
+                    if barcode_scan is not None:
+                        barcode_scan.covered[feature] = max(
+                            barcode_scan.covered.get(feature, 0), confidence
+                        )
+    return FileScan(covered, histogram, reads, tagged_reads, barcodes)
 
 
 def _percentile_threshold(histogram: list[int], percentile: float = 0.10) -> int:
@@ -324,6 +396,7 @@ class NanoDxCpgCounter:
         self.reads = 0
         self.tagged_reads = 0
         self.progress_history: list[tuple[float, int]] = []
+        self.barcodes: dict[str, dict[str, Any]] = {}
         self._load()
 
     @property
@@ -366,6 +439,31 @@ class NanoDxCpgCounter:
                 if math.isfinite(timestamp) and count >= 0:
                     history.append((timestamp, count))
             self.progress_history = sorted(history)[-120:]
+            for barcode, raw in payload.get("barcodes", {}).items():
+                barcode_history = []
+                for timestamp, count, passed_bases in raw.get("progress_history", []):
+                    timestamp = float(timestamp)
+                    count = int(count)
+                    passed_bases = int(passed_bases)
+                    if math.isfinite(timestamp) and count >= 0 and passed_bases >= 0:
+                        barcode_history.append((timestamp, count, passed_bases))
+                barcode_histogram = [
+                    int(value) for value in raw.get("histogram", [])
+                ]
+                if len(barcode_histogram) != 256:
+                    barcode_histogram = [0] * 256
+                self.barcodes[str(barcode)] = {
+                    "covered": {
+                        int(feature): int(confidence)
+                        for feature, confidence in raw.get("covered", {}).items()
+                    },
+                    "histogram": barcode_histogram,
+                    "reads": int(raw.get("reads", 0)),
+                    "tagged_reads": int(raw.get("tagged_reads", 0)),
+                    "passed_bases": int(raw.get("passed_bases", 0)),
+                    "failed_bases": int(raw.get("failed_bases", 0)),
+                    "progress_history": sorted(barcode_history)[-120:],
+                }
         except (FileNotFoundError, OSError, TypeError, ValueError, json.JSONDecodeError):
             return
 
@@ -381,6 +479,20 @@ class NanoDxCpgCounter:
             "reads": self.reads,
             "tagged_reads": self.tagged_reads,
             "progress_history": self.progress_history,
+            "barcodes": {
+                barcode: {
+                    "covered": {
+                        str(key): value for key, value in state["covered"].items()
+                    },
+                    "histogram": state["histogram"],
+                    "reads": state["reads"],
+                    "tagged_reads": state["tagged_reads"],
+                    "passed_bases": state["passed_bases"],
+                    "failed_bases": state["failed_bases"],
+                    "progress_history": state["progress_history"],
+                }
+                for barcode, state in self.barcodes.items()
+            },
         }
         descriptor, temporary_name = tempfile.mkstemp(
             prefix=f".{self.run_key}.", suffix=".tmp", dir=self.persistence_root
@@ -399,6 +511,7 @@ class NanoDxCpgCounter:
         if not root.is_dir():
             return
         processed_any = False
+        touched_barcodes: set[str] = set()
         for path in sorted(root.rglob("*.bam")):
             try:
                 fingerprint = self._fingerprint(path)
@@ -415,11 +528,51 @@ class NanoDxCpgCounter:
             ]
             self.reads += result.reads
             self.tagged_reads += result.tagged_reads
+            for barcode, barcode_result in result.barcodes.items():
+                state = self.barcodes.setdefault(
+                    barcode,
+                    {
+                        "covered": {},
+                        "histogram": [0] * 256,
+                        "reads": 0,
+                        "tagged_reads": 0,
+                        "passed_bases": 0,
+                        "failed_bases": 0,
+                        "progress_history": [],
+                    },
+                )
+                for feature, confidence in barcode_result.covered.items():
+                    state["covered"][feature] = max(
+                        state["covered"].get(feature, 0), confidence
+                    )
+                state["histogram"] = [
+                    left + right
+                    for left, right in zip(
+                        state["histogram"], barcode_result.confidence_histogram
+                    )
+                ]
+                state["reads"] += barcode_result.reads
+                state["tagged_reads"] += barcode_result.tagged_reads
+                state["passed_bases"] += barcode_result.passed_bases
+                state["failed_bases"] += barcode_result.failed_bases
+                touched_barcodes.add(barcode)
             self.processed.add(fingerprint)
             processed_any = True
         if processed_any:
-            self.progress_history.append((float(self.clock()), self._current_count()))
+            timestamp = float(self.clock())
+            self.progress_history.append((timestamp, self._current_count()))
             self.progress_history = self.progress_history[-120:]
+            for barcode in touched_barcodes:
+                state = self.barcodes[barcode]
+                threshold = _percentile_threshold(state["histogram"])
+                count = sum(
+                    confidence >= threshold
+                    for confidence in state["covered"].values()
+                )
+                state["progress_history"].append(
+                    (timestamp, count, state["passed_bases"])
+                )
+                state["progress_history"] = state["progress_history"][-120:]
             self._save()
 
     def _current_count(self) -> int:
@@ -444,6 +597,68 @@ class NanoDxCpgCounter:
         if elapsed_minutes <= 0 or gained <= 0:
             return None
         return gained / elapsed_minutes
+
+    @staticmethod
+    def _barcode_rates(
+        history: list[tuple[float, int, int]],
+    ) -> tuple[float | None, float | None]:
+        if len(history) < 2:
+            return None, None
+        latest_time = history[-1][0]
+        recent = [sample for sample in history if sample[0] >= latest_time - 600.0]
+        if len(recent) < 2:
+            recent = history[-2:]
+        first_time, first_count, first_bases = recent[0]
+        last_time, last_count, last_bases = recent[-1]
+        elapsed_minutes = (last_time - first_time) / 60.0
+        if elapsed_minutes <= 0:
+            return None, None
+        cpg_rate = (last_count - first_count) / elapsed_minutes
+        base_rate = (last_bases - first_bases) / elapsed_minutes
+        return (
+            cpg_rate if cpg_rate > 0 else None,
+            base_rate if base_rate > 0 else None,
+        )
+
+    def _barcode_status(self, barcode: str, state: dict[str, Any]) -> dict[str, Any]:
+        threshold = _percentile_threshold(state["histogram"])
+        count = sum(
+            confidence >= threshold for confidence in state["covered"].values()
+        )
+        reached = count >= INSTITUTE_CPG_THRESHOLD
+        remaining = max(INSTITUTE_CPG_THRESHOLD - count, 0)
+        cpg_rate, base_rate = self._barcode_rates(state["progress_history"])
+        eta_minutes = (
+            0.0
+            if reached
+            else None if cpg_rate is None else remaining / cpg_rate
+        )
+        return {
+            "barcode": barcode,
+            "state": "reached" if reached else "collecting",
+            "count": count,
+            "threshold": INSTITUTE_CPG_THRESHOLD,
+            "remaining": remaining,
+            "progress_percent": min(
+                count * 100.0 / INSTITUTE_CPG_THRESHOLD, 100.0
+            ),
+            "threshold_reached": reached,
+            "rate_cpg_per_minute": cpg_rate,
+            "eta_minutes": eta_minutes,
+            "passed_bases": state["passed_bases"],
+            "failed_bases": state["failed_bases"],
+            "rate_bases_per_minute": base_rate,
+            "reads_scanned": state["reads"],
+            "tagged_reads": state["tagged_reads"],
+            "tagged_read_fraction": (
+                state["tagged_reads"] / state["reads"] if state["reads"] else None
+            ),
+            "message": (
+                "Institute report threshold reached"
+                if reached
+                else f"{remaining} CpGs remaining"
+            ),
+        }
 
     def status(self) -> dict[str, Any]:
         count = self._current_count()
@@ -478,6 +693,13 @@ class NanoDxCpgCounter:
             "files_processed": len(self.processed),
             "reads_scanned": self.reads,
             "tagged_reads": self.tagged_reads,
+            "tagged_read_fraction": (
+                self.tagged_reads / self.reads if self.reads else None
+            ),
+            "barcodes": [
+                self._barcode_status(barcode, state)
+                for barcode, state in sorted(self.barcodes.items())
+            ],
             "message": (
                 "Institute report threshold reached"
                 if reached
@@ -530,6 +752,8 @@ class NanoDxCpgMonitor:
             "files_processed": 0,
             "reads_scanned": 0,
             "tagged_reads": 0,
+            "tagged_read_fraction": None,
+            "barcodes": [],
             "message": message,
         }
 
@@ -592,12 +816,14 @@ class NanoDxCpgMonitor:
                         status["state"] = "waiting"
                         status["message"] = "Waiting for a completed BAM batch"
                     elif counter.tagged_reads == 0:
-                        status = self._waiting(
-                            "No MM/ML methylation tags found in completed BAMs",
-                            "unavailable",
+                        status["state"] = "unavailable"
+                        status["message"] = (
+                            "No MM/ML methylation tags found in completed BAMs"
                         )
-                        status["files_processed"] = len(counter.processed)
-                        status["reads_scanned"] = counter.reads
+                    for barcode in status.get("barcodes", []):
+                        if barcode["reads_scanned"] and barcode["tagged_reads"] == 0:
+                            barcode["state"] = "unavailable"
+                            barcode["message"] = "No MM/ML methylation tags found"
                 except (OSError, ValueError) as exc:
                     status = self._waiting(str(exc), "error")
         status["last_update"] = datetime.now(timezone.utc).isoformat()

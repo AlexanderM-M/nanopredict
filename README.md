@@ -72,10 +72,25 @@ institute-defined threshold of 180 CpGs and changes to **THRESHOLD REACHED** as
 soon as that count is reached. This is a local report-readiness indicator, not
 a guarantee that ichorCNA or the complete NanoDx report will succeed.
 
+For multiplexed runs, select **Sample / barcode** to see that barcode's passed
+yield, target progress, yield ETA, NanoDx CpG count, and CpG ETA. Nanopredict
+detects `barcodeNN` and `unclassified` assignments from BAM `BC`/`RG` tags or
+standard barcode output directories. Each barcode can have its own target. The
+calibrated MinION forecast remains run-level and is deliberately not shown for
+an individual barcode.
+
 ```powershell
+nanopredict doctor
 nanopredict status
 nanopredict stop
 ```
+
+Run `nanopredict doctor` before the first operational use and again during a
+run if CpGs remain at zero. It checks the Python and API versions, MinKNOW
+connection, supported positions, live basecalling, BAM output, hg38 alignment,
+MM/ML tags, and barcode detection. For a non-standard output location, use
+`nanopredict doctor --bam-dir "D:\data"`. Add `--json` for machine-readable
+output.
 
 ### Repository launcher on Windows
 
@@ -116,9 +131,11 @@ The repository launcher accepts the same option: `.\nanopredict.cmd --replay`.
 - Concise peer-based suspected QC problem flags
 - Observed passed yield, reads, and temperature
 - One selectable overview of every active supported position
+- Per-barcode passed yield, target, yield ETA, NanoDx CpGs, and CpG ETA
 - Live NanoDx classifier CpGs and progress toward the institute threshold of 180
 - Recent CpG accumulation rate and estimated time to the 180-CpG threshold
 - PromethION live yield and CpG monitoring without applying the MinION model
+- Evidence-backed live problems with a specific corrective action
 
 Replay mode contains 513 snapshots from 171 complete MinION runs. Its table
 contains only anonymous `SampleN` labels, the numerical model inputs, and the
@@ -170,6 +187,16 @@ the same final-27-base edge exclusion. Anonymous incremental state is stored
 locally so restarting Nanopredict does not recount completed BAM batches. Before
 using the counter operationally, compare its result on at least one completed
 local run with NanoDx's reported `num_features`.
+
+### Live problem detection
+
+The dashboard reports only problems supported by current run evidence. Checks
+cover disabled basecalling/BAM/alignment, an inaccessible output directory, no
+completed BAM after 10 minutes, missing MM/ML tags, a non-hg38 BAM, a low tagged-
+read fraction, no passed yield after 15 minutes, and a substantial basecalling
+backlog. Every problem includes the observed reason and a concrete action. These
+rules complement the calibrated peer-based MinION flags; neither is an
+automated stop recommendation.
 
 ### MinKNOW version compatibility
 

@@ -81,6 +81,7 @@ select:focus, input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px r
 .position-state.good, .position-state.complete, .position-state.running { color: var(--good); background: var(--good-soft); }
 .position-state.reached { color: white; background: var(--good); }
 .position-state.bad, .position-state.error { color: var(--bad); background: var(--bad-soft); }
+.position-state.check { color: var(--bad); background: var(--bad-soft); }
 .position-state.uncertain, .position-state.waiting { color: var(--warn); background: var(--warn-soft); }
 .input-unit { position: relative; }
 .input-unit input { padding-right: 44px; }
@@ -175,6 +176,8 @@ button:disabled { opacity: .4; cursor: not-allowed; }
 .problem.high .problem-marker { background: var(--bad); }
 .problem h4 { margin: 0 0 4px; font-size: 12px; }
 .problem p { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
+.problem p + p { margin-top: 5px; }
+.problem .problem-action { color: var(--ink); font-weight: 650; }
 .no-problems { padding: 13px 14px; color: var(--good); background: var(--good-soft); border-radius: 10px; font-size: 12px; }
 .outcome-panel { padding: 20px 23px; display: flex; justify-content: space-between; align-items: center; }
 .outcome-panel h3 { margin: 0; font-size: 18px; }

@@ -352,6 +352,48 @@ class LiveCollectorTests(unittest.TestCase):
         self.assertIsNone(status["assessment"])
         self.assertEqual(status["history"], [])
 
+    def test_barcode_selection_uses_barcode_yield_cpgs_and_target(self):
+        engine = RunDecisionEngine(
+            CalibratedYieldPredictor(models_dir()), diagnostic_reference()
+        )
+        monitor = LiveMonitor(self.collector, engine, start_thread=False)
+        monitor.poll_once()
+        position_monitor = monitor._monitors["MN12345"]
+        aggregate = position_monitor._cpg_monitor.status()
+        position_monitor._cpg_monitor._status = {
+            **aggregate,
+            "barcodes": [
+                {
+                    "barcode": "barcode01",
+                    "state": "collecting",
+                    "count": 42,
+                    "threshold": 180,
+                    "remaining": 138,
+                    "progress_percent": 42 * 100 / 180,
+                    "threshold_reached": False,
+                    "rate_cpg_per_minute": 2.0,
+                    "eta_minutes": 69.0,
+                    "passed_bases": 125_000_000,
+                    "failed_bases": 2_000_000,
+                    "rate_bases_per_minute": 5_000_000,
+                    "reads_scanned": 500,
+                    "tagged_reads": 480,
+                    "tagged_read_fraction": 0.96,
+                    "message": "138 CpGs remaining",
+                }
+            ],
+        }
+
+        status = monitor.status("MN12345", "barcode01")
+        self.assertEqual(status["selected_barcode"], "barcode01")
+        self.assertEqual(status["nanodx_cpg"]["count"], 42)
+        self.assertEqual(status["live_progress"]["passed_bases"], 125_000_000)
+        self.assertIsNone(status["assessment"])
+
+        configured = monitor.configure(0.2, "MN12345", "barcode01")
+        self.assertEqual(configured["target_gb"], 0.2)
+        self.assertEqual(monitor.status("MN12345")["target_gb"], 10.0)
+
 
 if __name__ == "__main__":
     unittest.main()

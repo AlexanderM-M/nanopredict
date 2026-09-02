@@ -13,7 +13,7 @@
       <div class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></div>
       <div>
         <h1>Nanopredict</h1>
-        <p>Early yield intelligence for MinION</p>
+        <p>Live Nanopore run readiness</p>
       </div>
     </div>
     <div class="connection"><span class="connection-dot"></span><span id="connectionText">Connecting</span></div>
@@ -52,6 +52,11 @@
           <div id="positionList" class="position-list" aria-live="polite">
             <p class="position-empty">Looking for active positions…</p>
           </div>
+        </div>
+
+        <div id="barcodeControl" class="hidden">
+          <label for="barcodeSelect">Sample / barcode</label>
+          <select id="barcodeSelect"><option value="">All barcodes</option></select>
         </div>
 
         <label for="targetInput">Target passed yield</label>
@@ -94,7 +99,7 @@
         <div id="runState" class="run-state hidden">
           <section class="panel run-header">
             <div>
-              <div class="run-meta"><span id="sampleName">Run</span><span>MinION</span><span id="runMode">Live</span></div>
+              <div class="run-meta"><span id="sampleName">Run</span><span id="deviceName">Nanopore</span><span id="runMode">Live</span></div>
               <h3 id="runMessage">Collecting early run data</h3>
             </div>
             <div id="statusBadge" class="status-badge pending"><span></span><strong>COLLECTING</strong></div>

@@ -20,7 +20,13 @@ from nanopredict.paths import nanodx_cpg_targets
 
 
 class FakeRead:
-    def __init__(self, cpg_start: int, reverse: bool = False, probability: int = 230):
+    def __init__(
+        self,
+        cpg_start: int,
+        reverse: bool = False,
+        probability: int = 230,
+        barcode: str | None = None,
+    ):
         original = "A" * 10 + "C" + "A" * 89
         self.query_sequence = (
             original.translate(str.maketrans("ACGT", "TGCA"))[::-1]
@@ -41,6 +47,8 @@ class FakeRead:
             "ML": (probability,),
             "MN": len(original),
         }
+        if barcode:
+            self._tags["BC"] = barcode
 
     def get_tag(self, name):
         if name not in self._tags:
@@ -230,6 +238,59 @@ class NanoDxTargetTests(unittest.TestCase):
                 clock=lambda: now[0],
             )
             self.assertAlmostEqual(resumed.status()["eta_minutes"], 4.0)
+
+    def test_counter_reports_yield_and_cpgs_per_barcode(self):
+        starts = []
+        with gzip.open(nanodx_cpg_targets(), "rt", encoding="ascii") as handle:
+            for line in handle:
+                if line.startswith("#"):
+                    continue
+                chrom, start, _end, _probe = line.rstrip().split("\t")
+                start = int(start)
+                if chrom == "chr1" and len(self.targets.probes_at(chrom, start)) == 1:
+                    starts.append(start)
+                if len(starts) == 2:
+                    break
+        alignments = {
+            "pass.bam": FakeAlignment(
+                [
+                    FakeRead(starts[0], barcode="barcode01"),
+                    FakeRead(starts[1], barcode="barcode02"),
+                ]
+            ),
+            "fail.bam": FakeAlignment(
+                [FakeRead(starts[0], barcode="barcode01")]
+            ),
+        }
+
+        def opener(path, *_args):
+            return alignments[Path(path).name]
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            pass_dir = root / "bam_pass"
+            fail_dir = root / "bam_fail"
+            pass_dir.mkdir()
+            fail_dir.mkdir()
+            (pass_dir / "pass.bam").write_bytes(b"complete")
+            (fail_dir / "fail.bam").write_bytes(b"complete")
+            counter = NanoDxCpgCounter(
+                self.targets,
+                "barcoded-run",
+                persistence_root=root / "state",
+                opener=opener,
+                ready_check=lambda _path: True,
+            )
+            counter.scan_directory(root)
+            barcodes = {
+                item["barcode"]: item for item in counter.status()["barcodes"]
+            }
+            self.assertEqual(sorted(barcodes), ["barcode01", "barcode02"])
+            self.assertEqual(barcodes["barcode01"]["count"], 1)
+            self.assertEqual(barcodes["barcode01"]["passed_bases"], 100)
+            self.assertEqual(barcodes["barcode01"]["failed_bases"], 100)
+            self.assertEqual(barcodes["barcode02"]["count"], 1)
+            self.assertEqual(barcodes["barcode02"]["passed_bases"], 100)
 
     def test_monitor_reports_actionable_minknow_setup_states(self):
         with tempfile.TemporaryDirectory() as directory:

@@ -13,6 +13,7 @@ from urllib.parse import parse_qs, urlparse
 
 import numpy as np
 
+from . import __version__
 from .diagnose_run import RunDecisionEngine
 from .predict_calibrated import CalibratedYieldPredictor
 
@@ -64,19 +65,26 @@ class DashboardApplication:
             else None
         )
 
-    def status(self, position_name: str | None = None) -> dict[str, Any]:
+    def status(
+        self,
+        position_name: str | None = None,
+        barcode_name: str | None = None,
+    ) -> dict[str, Any]:
         return (
-            self.live.status(position_name)
+            self.live.status(position_name, barcode_name)
             if self.live is not None
             else self.replay.status()
         )
 
     def configure(
-        self, target_gb: float, position_name: str | None = None
+        self,
+        target_gb: float,
+        position_name: str | None = None,
+        barcode_name: str | None = None,
     ) -> dict[str, Any]:
         if self.live is None:
             raise ValueError("Live monitoring is not active")
-        return self.live.configure(target_gb, position_name)
+        return self.live.configure(target_gb, position_name, barcode_name)
 
     def close(self) -> None:
         if self.live is not None:
@@ -87,7 +95,7 @@ def make_handler(application: DashboardApplication):
     assets = static_dir().resolve()
 
     class DashboardHandler(BaseHTTPRequestHandler):
-        server_version = "Nanopredict/0.8.0"
+        server_version = f"Nanopredict/{__version__}"
 
         def log_message(self, format: str, *args: Any) -> None:
             return
@@ -137,7 +145,8 @@ def make_handler(application: DashboardApplication):
             elif path == "/api/status":
                 query = parse_qs(request_url.query)
                 position_name = query.get("position", [None])[0]
-                self._send_json(application.status(position_name))
+                barcode_name = query.get("barcode", [None])[0]
+                self._send_json(application.status(position_name, barcode_name))
             elif path.startswith("/api/"):
                 self._send_json({"error": "Unknown API endpoint"}, HTTPStatus.NOT_FOUND)
             else:
@@ -151,6 +160,7 @@ def make_handler(application: DashboardApplication):
                     result = application.configure(
                         float(payload.get("target_gb", 10)),
                         payload.get("position_name"),
+                        payload.get("barcode_name"),
                     )
                 elif path == "/api/start" and application.mode == "replay":
                     result = application.replay.start(

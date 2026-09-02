@@ -206,6 +206,7 @@ class BamYieldCounter:
     def status(self, elapsed_seconds: float) -> dict[str, float]:
         return {
             "observed_seconds": max(float(elapsed_seconds), 0.0),
+            "estimated_bases": None,
             "passed_bases": float(self.passed_bases),
             "failed_bases": float(self.failed_bases),
             "total_reads": float(self.total_reads),
@@ -322,6 +323,7 @@ class BamFallbackCollector:
             "reads_directory": str(position.root),
             "bam_reads_enabled": True,
             "alignment_enabled": True,
+            "basecalling_enabled": None,
             "alignment_reference_files": [],
         }
 
