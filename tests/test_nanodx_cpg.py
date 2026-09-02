@@ -170,6 +170,7 @@ class NanoDxTargetTests(unittest.TestCase):
             self.assertEqual(status["count"], 180)
             self.assertTrue(status["threshold_reached"])
             self.assertEqual(status["remaining"], 0)
+            self.assertIsNotNone(status["threshold_reached_at"])
 
             resumed = NanoDxCpgCounter(
                 self.targets,

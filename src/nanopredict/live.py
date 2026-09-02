@@ -1126,8 +1126,41 @@ class _PositionMonitor:
                 }
             cpg_status = self._cpg_monitor.status()
             barcode_rows = {
-                str(item["barcode"]): item
+                str(item["barcode"]): dict(item)
                 for item in cpg_status.get("barcodes", [])
+            }
+            for barcode, barcode_status in barcode_rows.items():
+                barcode_target_gb = self._barcode_targets.get(
+                    barcode, self._target_gb
+                )
+                barcode_target_bases = barcode_target_gb * 1e9
+                barcode_passed = float(barcode_status.get("passed_bases", 0))
+                barcode_rate = barcode_status.get("rate_bases_per_minute")
+                barcode_remaining = max(
+                    barcode_target_bases - barcode_passed, 0.0
+                )
+                barcode_reached = barcode_passed >= barcode_target_bases
+                barcode_status.update(
+                    {
+                        "target_gb": barcode_target_gb,
+                        "target_bases": barcode_target_bases,
+                        "yield_progress_percent": min(
+                            barcode_passed * 100.0 / barcode_target_bases, 100.0
+                        ),
+                        "yield_remaining_bases": barcode_remaining,
+                        "yield_target_reached": barcode_reached,
+                        "yield_eta_minutes": (
+                            0.0
+                            if barcode_reached
+                            else barcode_remaining / barcode_rate
+                            if barcode_rate
+                            else None
+                        ),
+                    }
+                )
+            cpg_status = {
+                **cpg_status,
+                "barcodes": list(barcode_rows.values()),
             }
             selected_barcode = (
                 barcode_name if barcode_name in barcode_rows else None
@@ -1145,7 +1178,7 @@ class _PositionMonitor:
             response_assessment = assessment
             if selected_barcode is not None:
                 barcode = barcode_rows[selected_barcode]
-                cpg_status = {**cpg_status, **barcode, "barcodes": list(barcode_rows.values())}
+                cpg_status = {**cpg_status, **barcode}
                 passed_bases = float(barcode["passed_bases"])
                 target_bases = response_target_gb * 1e9
                 remaining_bases = max(target_bases - passed_bases, 0.0)

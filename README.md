@@ -79,6 +79,14 @@ standard barcode output directories. Each barcode can have its own target. The
 calibrated MinION forecast remains run-level and is deliberately not shown for
 an individual barcode.
 
+The **Anonymous run report** panel downloads the current results as structured
+JSON or analysis-ready CSV. The report contains yield and CpG progress,
+threshold and ETA times, prediction checkpoints, detected problems, barcode
+metrics, and software versions. It is generated from an explicit allow-list and
+does not contain sample IDs, run IDs, flow-cell IDs, MinKNOW position names, or
+filesystem paths. CSV exports contain one run-level row followed by one row per
+detected barcode.
+
 ```powershell
 nanopredict doctor
 nanopredict status
@@ -136,6 +144,7 @@ The repository launcher accepts the same option: `.\nanopredict.cmd --replay`.
 - Recent CpG accumulation rate and estimated time to the 180-CpG threshold
 - PromethION live yield and CpG monitoring without applying the MinION model
 - Evidence-backed live problems with a specific corrective action
+- Privacy-preserving JSON and CSV run reports
 
 Replay mode contains 513 snapshots from 171 complete MinION runs. Its table
 contains only anonymous `SampleN` labels, the numerical model inputs, and the

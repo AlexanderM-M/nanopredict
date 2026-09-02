@@ -179,6 +179,11 @@ button:disabled { opacity: .4; cursor: not-allowed; }
 .problem p + p { margin-top: 5px; }
 .problem .problem-action { color: var(--ink); font-weight: 650; }
 .no-problems { padding: 13px 14px; color: var(--good); background: var(--good-soft); border-radius: 10px; font-size: 12px; }
+.report-panel { padding: 20px 23px; display: flex; justify-content: space-between; align-items: center; gap: 20px; }
+.report-panel h3 { margin: 2px 0 5px; font-size: 17px; }
+.report-panel > div > p:last-child { margin: 0; color: var(--muted); font-size: 11px; }
+.report-actions { display: flex; gap: 8px; flex: 0 0 auto; }
+.report-actions button { width: auto; margin: 0; white-space: nowrap; }
 .outcome-panel { padding: 20px 23px; display: flex; justify-content: space-between; align-items: center; }
 .outcome-panel h3 { margin: 0; font-size: 18px; }
 .outcome-panel > div:last-child { display: flex; align-items: baseline; gap: 6px; }
@@ -210,4 +215,6 @@ button:disabled { opacity: .4; cursor: not-allowed; }
   .status-badge { min-width: 0; }
   .live-progress-metrics { grid-template-columns: 1fr; }
   .live-progress-metrics div { padding-top: 12px; }
+  .report-panel { align-items: stretch; flex-direction: column; }
+  .report-actions { flex-direction: column; }
 }

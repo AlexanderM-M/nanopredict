@@ -71,6 +71,9 @@ class ReplayCatalogTests(unittest.TestCase):
         self.assertIn("BAM fallback", javascript)
         self.assertIn("Live passed yield and NanoDx CpGs remain available", javascript)
         self.assertIn("Calibrated prediction unavailable", javascript)
+        self.assertIn("ANONYMOUS RUN REPORT", html)
+        self.assertIn("downloadReport('json')", javascript)
+        self.assertIn("downloadReport('csv')", javascript)
         self.assertNotIn("No active MinION positions yet", javascript)
         self.assertNotIn("MinKNOW 6.10 · MinION profile", html)
 
@@ -134,6 +137,10 @@ class PositionApiTests(unittest.TestCase):
                     "selected_barcode": barcode_name,
                 }
 
+            def report(self, output_format, position_name=None):
+                self.report_request = (output_format, position_name)
+                return b"report", "application/json", "anonymous.json"
+
         application = FakeApplication()
         handler_type = make_handler(application)
         handler = object.__new__(handler_type)
@@ -154,6 +161,13 @@ class PositionApiTests(unittest.TestCase):
         handler.do_POST()
         self.assertEqual(sent[-1][0]["target_gb"], 15)
         self.assertEqual(application.configuration, (15.0, "MN22222", "barcode02"))
+
+        downloads = []
+        handler._send_download = lambda *values: downloads.append(values)
+        handler.path = "/api/report?format=json&position=MN22222"
+        handler.do_GET()
+        self.assertEqual(application.report_request, ("json", "MN22222"))
+        self.assertEqual(downloads[-1][0], b"report")
 
 
 if __name__ == "__main__":

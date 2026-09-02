@@ -633,6 +633,20 @@ class NanoDxCpgCounter:
             if reached
             else None if cpg_rate is None else remaining / cpg_rate
         )
+        reached_at = next(
+            (
+                datetime.fromtimestamp(timestamp, tz=timezone.utc).isoformat()
+                for timestamp, historical_count, _bases in state["progress_history"]
+                if historical_count >= INSTITUTE_CPG_THRESHOLD
+            ),
+            None,
+        )
+        estimated_at = None
+        if eta_minutes is not None and state["progress_history"]:
+            estimated_at = datetime.fromtimestamp(
+                state["progress_history"][-1][0] + eta_minutes * 60.0,
+                tz=timezone.utc,
+            ).isoformat()
         return {
             "barcode": barcode,
             "state": "reached" if reached else "collecting",
@@ -645,6 +659,8 @@ class NanoDxCpgCounter:
             "threshold_reached": reached,
             "rate_cpg_per_minute": cpg_rate,
             "eta_minutes": eta_minutes,
+            "estimated_threshold_at": estimated_at,
+            "threshold_reached_at": reached_at,
             "passed_bases": state["passed_bases"],
             "failed_bases": state["failed_bases"],
             "rate_bases_per_minute": base_rate,
@@ -677,6 +693,14 @@ class NanoDxCpgCounter:
                 self.progress_history[-1][0] + eta_minutes * 60.0,
                 tz=timezone.utc,
             ).isoformat()
+        reached_at = next(
+            (
+                datetime.fromtimestamp(timestamp, tz=timezone.utc).isoformat()
+                for timestamp, historical_count in self.progress_history
+                if historical_count >= INSTITUTE_CPG_THRESHOLD
+            ),
+            None,
+        )
         return {
             "state": "reached" if reached else "collecting",
             "count": count,
@@ -687,6 +711,7 @@ class NanoDxCpgCounter:
             "rate_cpg_per_minute": rate,
             "eta_minutes": eta_minutes,
             "estimated_threshold_at": estimated_at,
+            "threshold_reached_at": reached_at,
             "model": NANODX_MODEL,
             "assembly": TARGET_ASSEMBLY,
             "model_features": self.targets.feature_count,
@@ -746,6 +771,7 @@ class NanoDxCpgMonitor:
             "rate_cpg_per_minute": None,
             "eta_minutes": None,
             "estimated_threshold_at": None,
+            "threshold_reached_at": None,
             "model": NANODX_MODEL,
             "assembly": TARGET_ASSEMBLY,
             "model_features": EXPECTED_HG38_FEATURES,

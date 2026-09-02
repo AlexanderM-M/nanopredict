@@ -60,6 +60,8 @@ const elements = {
   confidence: document.getElementById('confidenceValue'),
   explanation: document.getElementById('statusExplanation'),
   problems: document.getElementById('problemsList'),
+  downloadJson: document.getElementById('downloadJsonButton'),
+  downloadCsv: document.getElementById('downloadCsvButton'),
   outcome: document.getElementById('outcomePanel'),
   actual: document.getElementById('actualValue'),
   toast: document.getElementById('toast')
@@ -554,6 +556,22 @@ elements.barcode.addEventListener('change', () => {
   selectedBarcode = elements.barcode.value || null;
   refresh();
 });
+
+function downloadReport(format) {
+  const parameters = new URLSearchParams({ format });
+  if (currentMode === 'minknow' && selectedPosition) {
+    parameters.set('position', selectedPosition);
+  }
+  const link = document.createElement('a');
+  link.href = `/api/report?${parameters}`;
+  link.download = '';
+  document.body.append(link);
+  link.click();
+  link.remove();
+}
+
+elements.downloadJson.addEventListener('click', () => downloadReport('json'));
+elements.downloadCsv.addEventListener('click', () => downloadReport('csv'));
 
 elements.advance.addEventListener('click', async () => {
   try { renderStatus(await api('/api/advance', { method: 'POST', body: '{}' })); }
