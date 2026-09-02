@@ -21,6 +21,7 @@ from .paths import diagnostic_reference, models_dir, replay_features, static_dir
 from .bam_fallback import BamFallbackCollector
 from .live import AdaptiveCollector, LiveMonitor, MinknowCollector
 from .replay import ReplayCatalog, ReplaySession
+from .report import report_download
 
 
 def _json_safe(value: Any) -> Any:
@@ -86,6 +87,13 @@ class DashboardApplication:
             raise ValueError("Live monitoring is not active")
         return self.live.configure(target_gb, position_name, barcode_name)
 
+    def report(
+        self, output_format: str, position_name: str | None = None
+    ) -> tuple[bytes, str, str]:
+        # Reports always contain the complete anonymous run view, including
+        # every barcode, rather than only the currently selected barcode.
+        return report_download(self.status(position_name), output_format)
+
     def close(self) -> None:
         if self.live is not None:
             self.live.close()
@@ -117,6 +125,19 @@ def make_handler(application: DashboardApplication):
                 return {}
             return json.loads(self.rfile.read(length).decode("utf-8"))
 
+        def _send_download(
+            self, body: bytes, content_type: str, filename: str
+        ) -> None:
+            self.send_response(HTTPStatus.OK)
+            self.send_header("Content-Type", content_type)
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header(
+                "Content-Disposition", f'attachment; filename="{filename}"'
+            )
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            self.wfile.write(body)
+
         def _serve_asset(self, requested: str) -> None:
             relative = "index.html" if requested in ("", "/") else requested.lstrip("/")
             candidate = (assets / relative).resolve()
@@ -147,6 +168,17 @@ def make_handler(application: DashboardApplication):
                 position_name = query.get("position", [None])[0]
                 barcode_name = query.get("barcode", [None])[0]
                 self._send_json(application.status(position_name, barcode_name))
+            elif path == "/api/report":
+                query = parse_qs(request_url.query)
+                try:
+                    body, content_type, filename = application.report(
+                        query.get("format", ["json"])[0],
+                        query.get("position", [None])[0],
+                    )
+                except ValueError as exc:
+                    self._send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+                else:
+                    self._send_download(body, content_type, filename)
             elif path.startswith("/api/"):
                 self._send_json({"error": "Unknown API endpoint"}, HTTPStatus.NOT_FOUND)
             else:
