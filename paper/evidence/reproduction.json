@@ -1,0 +1,9 @@
+{
+  "same_seed_rerun_identical": {
+    "predictions.csv": true,
+    "metrics.csv": true,
+    "split_assignments.csv": true,
+    "metadata.json": true
+  },
+  "scope": "Exact repeatability in the recorded local environment; not independent scientific replication."
+}

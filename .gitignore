@@ -32,3 +32,14 @@ nanopore_run_status.csv
 
 # The deliberately minimized anonymous replay asset is safe to package.
 !src/nanopredict/data/replay_features_anonymous.csv
+
+# Prospective study records and local release staging (never version raw study data).
+.study/
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+paper/archive/
+
+# Local research inputs and historical workspace backups.
+datasets/
+archive/

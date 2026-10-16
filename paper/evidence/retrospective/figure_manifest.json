@@ -1,0 +1,19 @@
+{
+  "scope": "Retrospective report reconstruction; not contemporaneous or prospective prediction",
+  "freeze_sha256": "9314aa038044c1a0322e8d77ad6e3b085778fd19689ff66c9a046c6b1d01bbca",
+  "result_provenance_sha256": "3d9c6e25cc19f2ec2a2e238fb9d5d1aebde58a0106ad9c90e5827c0e123d4cba",
+  "render_script_sha256": "4f1175bbf0b024d208f35e3950bfbaa2629964960443b7c7d50ca675af0155ff",
+  "matplotlib": "3.9.4",
+  "csv_format": "LF publication copies; values unchanged from frozen CRLF CSV files",
+  "files_sha256": {
+    "metrics.csv": "4a6ba1a2ed4f85e98e770f259aa39d622178a35745dff2dc97bd99c7142bf87b",
+    "paired.csv": "ef8593586aaf6ced5f2b603b9f3fc585e564d349d64b4f3bcd9c58278a8e4c0c",
+    "probabilities.csv": "57aa847319716288fe53fc1d8715d7757521b911f859ab371179eca88e4a3fa4",
+    "retrospective_comparison.pdf": "6564ff2f78e099afcde3ba803441652b3577fa86cde8986e2be4f910c0fc91ff",
+    "retrospective_comparison.png": "8752b8233d6103e22dbc4bd9ae13d9a5dbe6478c8b752ac4ce451badaba73d06",
+    "retrospective_coverage.pdf": "15bc25f8e692e722620bf315118aeeacaa1df94ac186ca6b277d2f93a8c3159c",
+    "retrospective_coverage.png": "a69257098ee2ba6b80c89ba8a1b841f56cf80c1f1ccf9fed09e7cbca07f90731"
+  },
+  "figure_caption": "Retrospective reconstruction on report-native inputs. A/C: all 20 runs; B/D: prespecified exclusion of configuration errors S15 and S16. Points and horizontal bars show estimates and 95% percentile intervals from 2000 flow-cell-group bootstrap replicates. Axis ranges differ between panels. Negative paired differences favor NanoPredict. These are not measurements of live availability or prospective accuracy.",
+  "coverage_caption": "Descriptive empirical coverage of unchanged bundled intervals at 30/60/120 minutes, with nominal coverage shown by the diagonal. All-run and prespecified sensitivity estimates are shown separately. Small sample size and report/live feature differences prevent a claim of calibrated live uncertainty."
+}

@@ -14,6 +14,15 @@ import joblib
 import numpy as np
 
 
+def observed_yield_floor(features: dict[str, Any]) -> float:
+    """Passed yield already observed under the same run/filter definition."""
+    try:
+        bases = float(features.get("observed_passed_bases"))
+    except (TypeError, ValueError):
+        return 0.0
+    return max(bases / 1e9, 0.0) if math.isfinite(bases) else 0.0
+
+
 class CalibratedYieldPredictor:
     """Load horizon-specific models and return GUI-friendly prediction data."""
 
@@ -68,9 +77,16 @@ class CalibratedYieldPredictor:
                 f"Unsupported horizon {horizon_minutes}; available: {self.horizons}"
             )
         artifact = self.artifacts[horizon_minutes]
-        X = self._feature_matrix(artifact, features)
-        point = max(float(artifact["model"].predict(X)[0]), 0.0)
         device = str(features.get("device_type", "unknown"))
+        allowed = artifact.get("allowed_device_types")
+        if allowed is not None and device not in allowed:
+            raise ValueError(f"Model is restricted to {', '.join(allowed)}; received {device}")
+        X = self._feature_matrix(artifact, features)
+        floor = observed_yield_floor(features) if artifact.get("point_postprocess") == "observed_yield_floor" else 0.0
+        raw_point = float(artifact["model"].predict(X)[0])
+        if not math.isfinite(raw_point):
+            raise ValueError("Non-finite model prediction")
+        point = max(raw_point, floor)
 
         interval_groups = artifact["interval_log_scores"]
         calibration_group = device if device in interval_groups else "__global__"
@@ -78,24 +94,36 @@ class CalibratedYieldPredictor:
         intervals: dict[str, dict[str, float]] = {}
         for coverage in (80, 90, 95):
             score = float(interval_groups[calibration_group][str(coverage)])
+            try:
+                upper = math.expm1(center + score)
+            except OverflowError:
+                upper = math.inf
             intervals[str(coverage)] = {
-                "lower_gb": max(math.expm1(center - score), 0.0),
-                "upper_gb": max(math.expm1(center + score), 0.0),
+                "lower_gb": max(math.expm1(center - score), floor),
+                "upper_gb": max(upper, floor) if math.isfinite(upper) else None,
             }
+            if not math.isfinite(upper):
+                intervals[str(coverage)]["unbounded"] = True
 
         residual_group, signed_residuals = self._group_values(
             artifact["signed_log_residuals"], device
         )
+        weights = np.asarray(artifact.get("signed_residual_weights", {}).get(
+            residual_group, np.ones(len(signed_residuals))), dtype=float)
+        if weights.shape != signed_residuals.shape or not np.isfinite(weights).all() or (weights <= 0).any():
+            raise ValueError("Invalid calibration residual weights")
         probabilities: dict[str, float] = {}
         for threshold in thresholds_gb:
             threshold = float(threshold)
             required_residual = math.log1p(max(threshold, 0.0)) - center
-            successes = int(np.sum(signed_residuals >= required_residual))
+            successes = float(np.sum(weights[signed_residuals >= required_residual]))
             # Laplace smoothing avoids reporting exactly 0% or 100% from a
             # modest empirical calibration set.
             probabilities[str(threshold)] = (successes + 1) / (
-                len(signed_residuals) + 2
+                float(weights.sum()) + 2
             )
+            if floor > 0 and threshold <= floor:
+                probabilities[str(threshold)] = 1.0
 
         return {
             "horizon_minutes": horizon_minutes,

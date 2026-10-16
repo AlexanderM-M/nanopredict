@@ -1,0 +1,10 @@
+{
+  "scope": "Original source HTML re-extraction against original development table; no newly uploaded data",
+  "original_rows": 654,
+  "reproduced_rows": 654,
+  "numeric_cells_checked": 26814,
+  "unexpected_extracted_rows": 0,
+  "mismatches_by_field": {},
+  "rtol": 1e-12,
+  "atol": 1e-10
+}

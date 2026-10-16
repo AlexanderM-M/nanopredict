@@ -1,0 +1,81 @@
+{
+  "scope": "Retrospective report reconstruction; not contemporaneous or prospective prediction",
+  "frozen_at_utc": "2026-10-15T14:54:00.676349+00:00",
+  "scored_at_utc": "2026-10-15T14:55:20.514039+00:00",
+  "freeze_sha256": "9314aa038044c1a0322e8d77ad6e3b085778fd19689ff66c9a046c6b1d01bbca",
+  "result_provenance_sha256": "3d9c6e25cc19f2ec2a2e238fb9d5d1aebde58a0106ad9c90e5827c0e123d4cba",
+  "run_count": 20,
+  "checkpoint_count": 60,
+  "flowcell_group_count": 17,
+  "software": {
+    "python": "3.9.25",
+    "packages": {
+      "nanopredict": "0.4.1",
+      "numpy": "1.26.4",
+      "scikit-learn": "1.6.1",
+      "joblib": "1.5.3",
+      "minknow_api": "6.10.3",
+      "bamnostic": "1.3",
+      "scipy": "1.13.1",
+      "protobuf": "6.33.6",
+      "grpcio": "1.80.0"
+    },
+    "source_sha256": {
+      "__init__.py": "7f64a352f5d14c6339f6195a1f21662185df89cbf2063fe9cd51fe469ac5760f",
+      "__main__.py": "3d2438ae92f4746e9ffaa1f837b1fe803f6281091d1f31f8c95643716f257d9a",
+      "bam_fallback.py": "47e3e870113fcb0239cb5dce0a5eaca934cd9dfe6de0b2daf52efdc993eea9a7",
+      "cli.py": "f1772e9bd10c7f9ced7bb227aa0d8fe92b74711471a6a88527532a8ff461c172",
+      "diagnose_run.py": "1e3c00f98da860051f13e346412dcb2a2f676865c42a304d08069185184ba7a5",
+      "doctor.py": "f682cf5fdf0f008a11e8b58f5e83966163b5ef54eb8f706485f45e5253e62aba",
+      "health.py": "4b2b92d5f98e3eeb8ecdf91c78d9fd065a7089e77b3ed6c570e69567c20d3d92",
+      "live.py": "6dae425676f004390429db11c98f2ca1b24f872b06c2df256de221609658952c",
+      "paths.py": "a8637009de12c8eba4684ee34e5f602cb811fba39aa3823495beb44475de4e42",
+      "predict_calibrated.py": "2074d775e7098544cccbc6670819d2962bd3e58887cc8fd32295cb7ac4588e4c",
+      "replay.py": "cfd8db9a960bd01ed50d62d938f14788b95fa973f7c3fec34ae37f7fd6d09338",
+      "report.py": "94665dc59d391feee181cd42f29a882542c1e6b37d988b40082359e73d92a4c2",
+      "server.py": "94d1b8be419a8d9f43c9d78a3cfa88ef8455f6938be82839e4382b1a35a1ad60",
+      "study.py": "7ba26658aaac4f7c8af8049ecbabd820d2fa171aaa72e68d1c1c0848dc83c49a"
+    }
+  },
+  "methods": [
+    "bundled",
+    "linear_planned",
+    "recent_planned",
+    "development_median",
+    "development_mean"
+  ],
+  "bootstrap_replicates": 2000,
+  "bootstrap_seed": 20261008,
+  "frozen_input_hashes": {
+    "plan.json": "ba3783d9017b152e55488510e86fb4eba76a56476b137dbec0442d65af6ff32a",
+    "extraction.json": "79441e31acc88a0e6e5aabc84890f8d1a8432ba379f802c7b4512e0acd708461",
+    "features.csv": "5dd954a15120bc516df92c49aadeb0ea337d984d54018848687d7ec2f8e0e7db",
+    "cohort.csv": "a393b55b1a3d1377aa018263db5d833525250761233c9f33198f490e13f8467f",
+    "feature_audit.csv": "4788b8a2f769e70f198152385128c71ac761757a28fbbf5cadc265bc31a9c340",
+    "outcomes.json": "079fc17aaa4e2f862b52c1dcef3145bdd765d6a3c1c5dd379aa0ad5b91f6b463"
+  },
+  "frozen_analysis_hashes": {
+    "evaluate_retrospective.py": "dd4617c132b23475e87b6944ac3ccd138e9067029f332f59a4f56a3b7f427a17",
+    "evaluate_frozen.py": "9dacb14f20d7b2cd28419167e06ad9b8cbb493994610cabe3a05b9489aba11b2",
+    "extract_retrospective.py": "8fd3f872d08502086184335e7d4e93871c16b815e14155311f139914325300aa",
+    "reconcile_retrospective_yield.py": "9ed3e828dcd7ea38399389f058f24bfb5c75c6e9f476ff6beb54ed0d95addc7a"
+  },
+  "model_sha256": {
+    "calibrated_yield_30min.joblib": "0c052d456da3165ebf1dfd98fd97c98a396063e0c88a32a10fa1399aa3101321",
+    "calibrated_yield_60min.joblib": "f4b991faf08c73224069edbb10522d07100334c9441ea2dae410910964a540ac",
+    "calibrated_yield_120min.joblib": "99112b37596bc5a913a1ec12dd542af0f3e00fec78eb699352e0cb8d0451802f"
+  },
+  "tests_passed": 97,
+  "limitations": [
+    "Retrospective reports do not establish when historical basecalls/statistics were available live.",
+    "Report-native 10/30-minute bins differ from the deployed collector windows, especially boxplots and recent rates.",
+    "Temperature times are recovered from linked HTML chart points and values checked against JSON packets; report aggregation still differs from the live one-minute stream.",
+    "Reported planned duration and quality threshold are final-report configuration; checkpoint-time configuration remains unverified.",
+    "Zero target temperature is the deployed representation placeholder, not a physical reading.",
+    "Original training feature extraction and membership cannot be reconstructed from these reports alone.",
+    "Known reused flow cells define related groups even when patients/specimens/libraries are distinct by investigator declaration."
+  ],
+  "finding": "No general forecast-superiority claim: full-cohort MAE advantage is sensitive to setting errors; excluding S15/S16, cumulative extrapolation is better at 30/60 min and similar at 120 min.",
+  "data_handling": "Only aggregate metrics/figures and hashes are versioned here. Per-run forecasts, inputs, outcomes and original immutable freeze remain in ignored private archive.",
+  "public_extract_note": "Retired personal-integration fields omitted. The unchanged original is preserved in the private source snapshot; this extract is not the original frozen record."
+}

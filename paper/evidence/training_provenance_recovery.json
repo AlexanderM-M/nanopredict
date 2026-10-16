@@ -1,0 +1,318 @@
+{
+  "audit_date": "2026-10-16",
+  "status": "Original training materials recovered; evaluation overlap confirmed",
+  "source_file_sha256": {
+    "calibrate_yield.py": "fe26a0da340ceba9259a0953c73b83d08545b5e18c3b7c48f3fee9e544217cc8",
+    "train_benchmark.py": "c4d835e04bb7d3cb2f1eb4ece41f19e9893402ed24d7e7afee1c0d6a89f55698",
+    "extract_report_features.py": "9c88a8509c9f818ef7f14d56d6b3858c360b27578bec725f2bc3a91fd53e37bf",
+    "build_replay_dataset.py": "56373d547c93ec0e675e2d9f8888020457c31eca8b9b0cce7d1f28c619766166",
+    "report_features.csv": "ba44e4aefbd33e59c7e4aef68fbb67d586e690dffa0c5bc8693c213e84395524",
+    "report_audit.csv": "40ee445b465961975db6ccb1c4656ec55a938131a9c26ffeede4499b76f433a2",
+    "calibrated/calibration_manifest.json": "2f842277618300569781bf374884b66172608281d2973d5eb5b248280254b71a",
+    "calibrated/calibration_splits.csv": "fd057aa5824f9790ac43f37e28564b2a623d6cc4e4ee1eb44bda45621547afdd",
+    "calibrated/calibration_metrics.csv": "13ba339f4b6b46acacc0283a7ea8c309510372f519d1e1dbff6a5e4e22b4e138",
+    "calibrated/calibration_predictions.csv": "d41e5227c5501e9a7092976a5900af4b4e138d5277b0364caa712cfc280f402f"
+  },
+  "training_rows_total": 654,
+  "unique_run_labels": 244,
+  "unique_sample_labels": 238,
+  "unique_runs_by_device": {
+    "MINION_MK1D": 183,
+    "PromethION 2 Solo": 61
+  },
+  "earliest_training_run_start": "2025-04-08T16:54:34.391519Z",
+  "latest_training_run_start": "2026-08-25T16:49:34.026140225Z",
+  "training_reports_with_final_summary_linkage": 244,
+  "models": [
+    {
+      "horizon_minutes": 30,
+      "artifact_sha256": "0c052d456da3165ebf1dfd98fd97c98a396063e0c88a32a10fa1399aa3101321",
+      "original_matches_bundled_bytes": true,
+      "feature_count": 40,
+      "training_rows": 198,
+      "unique_sample_labels": 195,
+      "unique_run_labels": 198,
+      "device_counts": {
+        "MINION_MK1D": 176,
+        "PromethION 2 Solo": 22
+      },
+      "reconstructed_prediction_max_absolute_difference_gb": 7.887024366937112e-13,
+      "reconstructed_predictions_match_at_atol_1e-8": true,
+      "reconstructed_model_state_hash_matches": false,
+      "reconstructed_temporal_roles_match_saved_splits": true,
+      "historical_temporal_role_counts": {
+        "development": 158,
+        "test": 40
+      },
+      "deployment_fit_scope": "All horizon rows, including historical temporal test rows",
+      "calibration_method": "sample_grouped_5fold_oof_log_residuals"
+    },
+    {
+      "horizon_minutes": 60,
+      "artifact_sha256": "f4b991faf08c73224069edbb10522d07100334c9441ea2dae410910964a540ac",
+      "original_matches_bundled_bytes": true,
+      "feature_count": 40,
+      "training_rows": 213,
+      "unique_sample_labels": 209,
+      "unique_run_labels": 213,
+      "device_counts": {
+        "MINION_MK1D": 181,
+        "PromethION 2 Solo": 32
+      },
+      "reconstructed_prediction_max_absolute_difference_gb": 9.071499107449199e-11,
+      "reconstructed_predictions_match_at_atol_1e-8": true,
+      "reconstructed_model_state_hash_matches": false,
+      "reconstructed_temporal_roles_match_saved_splits": true,
+      "historical_temporal_role_counts": {
+        "development": 170,
+        "test": 43
+      },
+      "deployment_fit_scope": "All horizon rows, including historical temporal test rows",
+      "calibration_method": "sample_grouped_5fold_oof_log_residuals"
+    },
+    {
+      "horizon_minutes": 120,
+      "artifact_sha256": "99112b37596bc5a913a1ec12dd542af0f3e00fec78eb699352e0cb8d0451802f",
+      "original_matches_bundled_bytes": true,
+      "feature_count": 40,
+      "training_rows": 243,
+      "unique_sample_labels": 237,
+      "unique_run_labels": 243,
+      "device_counts": {
+        "MINION_MK1D": 182,
+        "PromethION 2 Solo": 61
+      },
+      "reconstructed_prediction_max_absolute_difference_gb": 4.263256414560601e-14,
+      "reconstructed_predictions_match_at_atol_1e-8": true,
+      "reconstructed_model_state_hash_matches": false,
+      "reconstructed_temporal_roles_match_saved_splits": true,
+      "historical_temporal_role_counts": {
+        "development": 194,
+        "test": 49
+      },
+      "deployment_fit_scope": "All horizon rows, including historical temporal test rows",
+      "calibration_method": "sample_grouped_5fold_oof_log_residuals"
+    }
+  ],
+  "packaged_replay_rows": 513,
+  "packaged_replay_rows_matching_training_table_on_every_exported_field": 513,
+  "retrospective_overlap": [
+    {
+      "evaluation_run": "S1",
+      "protocol_match_count": 0,
+      "acquisition_match_count": 0,
+      "flowcell_match_count": 0,
+      "training_horizons": []
+    },
+    {
+      "evaluation_run": "S2",
+      "protocol_match_count": 0,
+      "acquisition_match_count": 0,
+      "flowcell_match_count": 0,
+      "training_horizons": []
+    },
+    {
+      "evaluation_run": "S3",
+      "protocol_match_count": 0,
+      "acquisition_match_count": 0,
+      "flowcell_match_count": 0,
+      "training_horizons": []
+    },
+    {
+      "evaluation_run": "S4",
+      "protocol_match_count": 0,
+      "acquisition_match_count": 0,
+      "flowcell_match_count": 0,
+      "training_horizons": []
+    },
+    {
+      "evaluation_run": "S5",
+      "protocol_match_count": 1,
+      "acquisition_match_count": 1,
+      "flowcell_match_count": 2,
+      "training_horizons": [
+        30,
+        60,
+        120
+      ]
+    },
+    {
+      "evaluation_run": "S6",
+      "protocol_match_count": 1,
+      "acquisition_match_count": 1,
+      "flowcell_match_count": 2,
+      "training_horizons": [
+        30,
+        60,
+        120
+      ]
+    },
+    {
+      "evaluation_run": "S7",
+      "protocol_match_count": 1,
+      "acquisition_match_count": 1,
+      "flowcell_match_count": 3,
+      "training_horizons": [
+        30,
+        60,
+        120
+      ]
+    },
+    {
+      "evaluation_run": "S8",
+      "protocol_match_count": 1,
+      "acquisition_match_count": 1,
+      "flowcell_match_count": 2,
+      "training_horizons": [
+        30,
+        60,
+        120
+      ]
+    },
+    {
+      "evaluation_run": "S9",
+      "protocol_match_count": 0,
+      "acquisition_match_count": 0,
+      "flowcell_match_count": 1,
+      "training_horizons": []
+    },
+    {
+      "evaluation_run": "S10",
+      "protocol_match_count": 0,
+      "acquisition_match_count": 0,
+      "flowcell_match_count": 0,
+      "training_horizons": []
+    },
+    {
+      "evaluation_run": "S11",
+      "protocol_match_count": 1,
+      "acquisition_match_count": 1,
+      "flowcell_match_count": 3,
+      "training_horizons": [
+        30,
+        60,
+        120
+      ]
+    },
+    {
+      "evaluation_run": "S12",
+      "protocol_match_count": 1,
+      "acquisition_match_count": 1,
+      "flowcell_match_count": 3,
+      "training_horizons": [
+        30,
+        60,
+        120
+      ]
+    },
+    {
+      "evaluation_run": "S13",
+      "protocol_match_count": 1,
+      "acquisition_match_count": 1,
+      "flowcell_match_count": 3,
+      "training_horizons": [
+        30,
+        60,
+        120
+      ]
+    },
+    {
+      "evaluation_run": "S14",
+      "protocol_match_count": 1,
+      "acquisition_match_count": 1,
+      "flowcell_match_count": 1,
+      "training_horizons": [
+        30,
+        60,
+        120
+      ]
+    },
+    {
+      "evaluation_run": "S15",
+      "protocol_match_count": 1,
+      "acquisition_match_count": 1,
+      "flowcell_match_count": 2,
+      "training_horizons": [
+        30,
+        60,
+        120
+      ]
+    },
+    {
+      "evaluation_run": "S16",
+      "protocol_match_count": 1,
+      "acquisition_match_count": 1,
+      "flowcell_match_count": 2,
+      "training_horizons": [
+        30,
+        60,
+        120
+      ]
+    },
+    {
+      "evaluation_run": "S17",
+      "protocol_match_count": 1,
+      "acquisition_match_count": 1,
+      "flowcell_match_count": 1,
+      "training_horizons": [
+        30,
+        60,
+        120
+      ]
+    },
+    {
+      "evaluation_run": "S18",
+      "protocol_match_count": 1,
+      "acquisition_match_count": 1,
+      "flowcell_match_count": 2,
+      "training_horizons": [
+        30,
+        60,
+        120
+      ]
+    },
+    {
+      "evaluation_run": "S19",
+      "protocol_match_count": 1,
+      "acquisition_match_count": 1,
+      "flowcell_match_count": 3,
+      "training_horizons": [
+        30,
+        60,
+        120
+      ]
+    },
+    {
+      "evaluation_run": "S20",
+      "protocol_match_count": 1,
+      "acquisition_match_count": 1,
+      "flowcell_match_count": 3,
+      "training_horizons": [
+        30,
+        60,
+        120
+      ]
+    }
+  ],
+  "retrospective_exact_acquisition_overlap_runs": 14,
+  "retrospective_no_acquisition_or_flowcell_match_runs": [
+    "S1",
+    "S2",
+    "S3",
+    "S4",
+    "S10"
+  ],
+  "interpretation": [
+    "All three historical artifacts exactly match bundled model files.",
+    "Recovered fitting code and feature table reproduce bundled predictions within numerical tolerance; serialized fitted state is not byte-identical.",
+    "The historical chronological 80/20 benchmark used separate evaluation models. Deployed point models were subsequently fitted on all available horizon rows.",
+    "Deployment residual calibration used five-fold GroupKFold over Sample labels, with pipeline preprocessing refitted per outer fold.",
+    "RidgeCV internal alpha selection was not explicitly group-aware; preprocessing preceded its internal tuning.",
+    "Sample folder grouping does not establish patient/specimen/library independence. Flow-cell grouping was not enforced by the original scripts.",
+    "Fourteen current retrospective acquisitions were used for fitting and OOF calibration at every checkpoint; the 20-run analysis is not independent validation.",
+    "S9 has no exact acquisition match but shares a flow cell with training. Five other cases have no acquisition/protocol/flowcell match; biological relationships still need review.",
+    "Original report-based feature extraction is recovered, but real-time availability and live/historical parity remain unverified.",
+    "Existing models, frozen analyses and original source files were not modified by this audit."
+  ],
+  "training_report_protocol_and_flowcell_ids_match_final_summaries": true
+}

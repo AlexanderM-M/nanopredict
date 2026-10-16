@@ -8,7 +8,7 @@ version = "0.10.0"
 description = "Live Nanopore monitoring and calibrated MinION yield prediction dashboard"
 readme = "README.md"
 license = "GPL-3.0-only"
-license-files = ["LICENSE", "THIRD_PARTY_NOTICES.md"]
+license-files = ["LICENSE"]
 keywords = ["nanopore", "MinION", "MinKNOW", "sequencing", "bioinformatics"]
 requires-python = ">=3.9,<3.13"
 dependencies = [
@@ -53,6 +53,5 @@ nanopredict = [
   "static/*.js",
   "data/*.json",
   "data/*.csv",
-  "data/*.gz",
   "data/models/*.joblib",
 ]

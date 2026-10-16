@@ -1,0 +1,47 @@
+{
+  "completed_at_utc": "2026-10-16T13:50:48.022027+00:00",
+  "scope": "Descriptive retrospective assessment; report-native features and run-level endpoints",
+  "primary_labels": [
+    "S26",
+    "S27",
+    "S28",
+    "S29"
+  ],
+  "primary_n_runs": 4,
+  "primary_n_flowcell_groups": 3,
+  "secondary_label": "S30",
+  "duplicate_excluded": "S25 equals previously scored S4",
+  "whole_run_yield_reconciliation": "All six reports and sequencing summaries agree exactly on passed bases and read counts; no duplicate, missing or foreign-run read IDs.",
+  "bam_linkage": "S29 includes 72 report-linked barcode22 BAM files and 36 foreign barcode16 BAM files; no BAM read totals were used in scoring. Original files retained.",
+  "comparison": [
+    {
+      "horizon_minutes": 30,
+      "nanopredict_mae_gb": 0.3126496865976135,
+      "linear_extrapolation_mae_gb": 0.016886716
+    },
+    {
+      "horizon_minutes": 60,
+      "nanopredict_mae_gb": 0.13717782970084538,
+      "linear_extrapolation_mae_gb": 0.014563528
+    },
+    {
+      "horizon_minutes": 120,
+      "nanopredict_mae_gb": 0.00899793466375697,
+      "linear_extrapolation_mae_gb": 0.011883458
+    }
+  ],
+  "finding": "Extrapolation has lower MAE at 30 and 60 minutes; bundled model has slightly lower MAE at 120 minutes. No general superiority claim.",
+  "limits": [
+    "Only four primary acquisitions in three reused flowcell groups; exploratory intervals are not confirmatory.",
+    "Report reconstruction does not establish contemporaneous live feature availability.",
+    "Independence/completeness are investigator declarations; metadata flowcell relations retained.",
+    "Stop reasons, configuration-error status and influence of forecasts are not adjudicated for this cohort.",
+    "These outcomes have now been inspected. If models are revised using these findings, reserve fresh evaluation data."
+  ],
+  "validation": [
+    "15 unique checkpoints scored for five distinct acquisitions; duplicate S25 excluded.",
+    "Aggregate bundled MAE independently recomputed from saved per-run forecasts.",
+    "Bundled model SHA-256 hashes unchanged."
+  ],
+  "models_retrained": false
+}

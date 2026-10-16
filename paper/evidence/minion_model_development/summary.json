@@ -1,0 +1,209 @@
+{
+  "created_at_utc": "2026-10-16T14:13:24.614952+00:00",
+  "status": "Frozen development candidates for future qualification/evaluation; not promoted to bundled production models",
+  "scope": "MinION only; no PromethION fitting, tuning or calibration observations",
+  "unique_minion_runs": 183,
+  "minion_checkpoint_rows": 539,
+  "excluded_non_minion_checkpoint_rows": 115,
+  "related_groups": 86,
+  "split_manifest_sha256": "16c61f4cf06297654d4cda8294d96b9f6c2d43e7539e0a1d68b75cda72006fd9",
+  "plan_sha256": "d0460f2c4f6940a94ff4b4b067a3c99f1160f198b82fe7279f03985144051069",
+  "sklearn_version": "1.6.1",
+  "runtime_predictor_sha256": "21e641ad9cb959dc8fb5f757c0ab3c3e79dc5c482482fc0fc8668b814aea8152",
+  "results": [
+    {
+      "horizon_minutes": 30,
+      "chosen_config": {
+        "family": "log_ridge",
+        "alpha": 10.0
+      },
+      "fit_rows": 141,
+      "calibration_rows": 35,
+      "fit_groups": 61,
+      "calibration_groups": 20,
+      "selection_scores": [
+        {
+          "config": {
+            "family": "log_ridge",
+            "alpha": 1.0
+          },
+          "group_mae_gb": 0.3566358831261892,
+          "run_mae_gb": 0.27398686342032524
+        },
+        {
+          "config": {
+            "family": "log_ridge",
+            "alpha": 10.0
+          },
+          "group_mae_gb": 0.31852969291377703,
+          "run_mae_gb": 0.24390171306932715
+        },
+        {
+          "config": {
+            "family": "log_ridge",
+            "alpha": 100.0
+          },
+          "group_mae_gb": 0.372187517433972,
+          "run_mae_gb": 0.2743785645647465
+        },
+        {
+          "config": {
+            "family": "extra_trees",
+            "min_samples_leaf": 3
+          },
+          "group_mae_gb": 0.33658859999167967,
+          "run_mae_gb": 0.27447014635730954
+        },
+        {
+          "config": {
+            "family": "extra_trees",
+            "min_samples_leaf": 5
+          },
+          "group_mae_gb": 0.38416785468742143,
+          "run_mae_gb": 0.31491146502835404
+        }
+      ],
+      "selected_fitting_cv_mae_gb": 0.24390171306932715,
+      "common_baseline_rows": 133,
+      "selected_fitting_cv_mae_on_common_gb": 0.1405534955190401,
+      "linear_mae_on_common_gb": 0.3139903460902255,
+      "development_calibration_mae_gb": 0.4817894440479023,
+      "calibration_radii": {
+        "80": 0.46213389833053475,
+        "90": 0.7315562983159863,
+        "95": 1.123009894168619
+      },
+      "artifact_sha256": "ac626b506dac6ccc039f66dbf2b58c13041e2862c2bf3bd5b54e0c5cb9b485c8"
+    },
+    {
+      "horizon_minutes": 60,
+      "chosen_config": {
+        "family": "extra_trees",
+        "min_samples_leaf": 3
+      },
+      "fit_rows": 144,
+      "calibration_rows": 37,
+      "fit_groups": 63,
+      "calibration_groups": 22,
+      "selection_scores": [
+        {
+          "config": {
+            "family": "log_ridge",
+            "alpha": 1.0
+          },
+          "group_mae_gb": 0.46156418468438704,
+          "run_mae_gb": 0.3266330929200779
+        },
+        {
+          "config": {
+            "family": "log_ridge",
+            "alpha": 10.0
+          },
+          "group_mae_gb": 0.4247851956493474,
+          "run_mae_gb": 0.30415158628426897
+        },
+        {
+          "config": {
+            "family": "log_ridge",
+            "alpha": 100.0
+          },
+          "group_mae_gb": 0.43657023580823157,
+          "run_mae_gb": 0.33646329384294077
+        },
+        {
+          "config": {
+            "family": "extra_trees",
+            "min_samples_leaf": 3
+          },
+          "group_mae_gb": 0.3425165498163137,
+          "run_mae_gb": 0.2868433006840514
+        },
+        {
+          "config": {
+            "family": "extra_trees",
+            "min_samples_leaf": 5
+          },
+          "group_mae_gb": 0.3547890200514482,
+          "run_mae_gb": 0.3079744680596749
+        }
+      ],
+      "selected_fitting_cv_mae_gb": 0.2868433006840514,
+      "common_baseline_rows": 134,
+      "selected_fitting_cv_mae_on_common_gb": 0.1501897197316835,
+      "linear_mae_on_common_gb": 0.3526330990597016,
+      "development_calibration_mae_gb": 0.5741537370511323,
+      "calibration_radii": {
+        "80": 0.5326635199148813,
+        "90": 0.8686023018305487,
+        "95": 1.0484712183350826
+      },
+      "artifact_sha256": "753b252073d72a0a584ac95bf405967856c9b4b1cd9f7508e1d17cd918f3722d"
+    },
+    {
+      "horizon_minutes": 120,
+      "chosen_config": {
+        "family": "log_ridge",
+        "alpha": 10.0
+      },
+      "fit_rows": 145,
+      "calibration_rows": 37,
+      "fit_groups": 64,
+      "calibration_groups": 22,
+      "selection_scores": [
+        {
+          "config": {
+            "family": "log_ridge",
+            "alpha": 1.0
+          },
+          "group_mae_gb": 0.4996517779975294,
+          "run_mae_gb": 0.42069255483923873
+        },
+        {
+          "config": {
+            "family": "log_ridge",
+            "alpha": 10.0
+          },
+          "group_mae_gb": 0.3673211174292526,
+          "run_mae_gb": 0.30485198113862017
+        },
+        {
+          "config": {
+            "family": "log_ridge",
+            "alpha": 100.0
+          },
+          "group_mae_gb": 0.4265966694745611,
+          "run_mae_gb": 0.36188529476926756
+        },
+        {
+          "config": {
+            "family": "extra_trees",
+            "min_samples_leaf": 3
+          },
+          "group_mae_gb": 0.4680219709039843,
+          "run_mae_gb": 0.3819033181261698
+        },
+        {
+          "config": {
+            "family": "extra_trees",
+            "min_samples_leaf": 5
+          },
+          "group_mae_gb": 0.49966418096306664,
+          "run_mae_gb": 0.422912559672106
+        }
+      ],
+      "selected_fitting_cv_mae_gb": 0.30485198113862017,
+      "common_baseline_rows": 134,
+      "selected_fitting_cv_mae_on_common_gb": 0.14406108098771223,
+      "linear_mae_on_common_gb": 0.42106230399626865,
+      "development_calibration_mae_gb": 0.5870416967046082,
+      "calibration_radii": {
+        "80": 0.33361084428194754,
+        "90": 0.7130802279612688,
+        "95": 1.0645891915761696
+      },
+      "artifact_sha256": "6629b4ec15a4a1e7d397610105bee282ae0d2a8f49596cfa8bdf31f387613430"
+    }
+  ],
+  "bundled_models_unchanged": true,
+  "limitations": "Previously inspected historical development data; no independent performance or coverage claim. Only recorded relationships can be grouped. Live feature parity still requires qualification."
+}

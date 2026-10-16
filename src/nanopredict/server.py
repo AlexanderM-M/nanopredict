@@ -85,7 +85,8 @@ class DashboardApplication:
     ) -> dict[str, Any]:
         if self.live is None:
             raise ValueError("Live monitoring is not active")
-        return self.live.configure(target_gb, position_name, barcode_name)
+        self.live.configure(target_gb, position_name, barcode_name)
+        return self.status(position_name, barcode_name)
 
     def report(
         self, output_format: str, position_name: str | None = None

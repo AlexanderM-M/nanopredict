@@ -1,0 +1,80 @@
+{
+  "scope": "All BAM text headers and EOF markers; no alignment records scanned. Header runid matches protocol ID in these exports.",
+  "investigator_statement": "Complete sequencing run, including all barcodes",
+  "runs": [
+    {
+      "run_label": "S25",
+      "bam_files": 73,
+      "report_linked_bam_files": 73,
+      "barcode_alias_file_counts": {
+        "unclassified": 73
+      },
+      "missing_index_count": 0,
+      "bam_eof_markers": 73,
+      "changed_during_header_inspection": 0,
+      "yield_source": "report_and_sequencing_summary_only_not_BAM_subtotals"
+    },
+    {
+      "run_label": "S26",
+      "bam_files": 72,
+      "report_linked_bam_files": 72,
+      "barcode_alias_file_counts": {
+        "barcode18": 72
+      },
+      "missing_index_count": 0,
+      "bam_eof_markers": 72,
+      "changed_during_header_inspection": 0,
+      "yield_source": "report_and_sequencing_summary_only_not_BAM_subtotals"
+    },
+    {
+      "run_label": "S27",
+      "bam_files": 72,
+      "report_linked_bam_files": 72,
+      "barcode_alias_file_counts": {
+        "barcode17": 72
+      },
+      "missing_index_count": 0,
+      "bam_eof_markers": 72,
+      "changed_during_header_inspection": 0,
+      "yield_source": "report_and_sequencing_summary_only_not_BAM_subtotals"
+    },
+    {
+      "run_label": "S28",
+      "bam_files": 84,
+      "report_linked_bam_files": 84,
+      "barcode_alias_file_counts": {
+        "barcode18": 84
+      },
+      "missing_index_count": 0,
+      "bam_eof_markers": 84,
+      "changed_during_header_inspection": 0,
+      "yield_source": "report_and_sequencing_summary_only_not_BAM_subtotals"
+    },
+    {
+      "run_label": "S29",
+      "bam_files": 108,
+      "report_linked_bam_files": 72,
+      "foreign_or_ambiguous_bam_files": 36,
+      "barcode_alias_file_counts": {
+        "barcode22": 72,
+        "barcode16": 36
+      },
+      "missing_index_count": 0,
+      "bam_eof_markers": 108,
+      "changed_during_header_inspection": 0,
+      "yield_source": "report_and_sequencing_summary_only_not_BAM_subtotals"
+    },
+    {
+      "run_label": "S30",
+      "bam_files": 76,
+      "report_linked_bam_files": 76,
+      "barcode_alias_file_counts": {
+        "barcode16": 76
+      },
+      "missing_index_count": 0,
+      "bam_eof_markers": 76,
+      "changed_during_header_inspection": 0,
+      "yield_source": "report_and_sequencing_summary_only_not_BAM_subtotals"
+    }
+  ]
+}

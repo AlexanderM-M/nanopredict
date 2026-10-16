@@ -1,0 +1,163 @@
+{
+  "inspected_at_utc": "2026-10-15T10:41:49.529761+00:00",
+  "script_sha256": "003e3d892fc4864f9301db24b478e9a9a6b1f7f59aa8464b6adc45f4968107f1",
+  "scope": "File metadata, BAM headers and EOF markers only. No read scan, yield outcome, model prediction or performance analysis.",
+  "investigator_declares_distinct_runs": true,
+  "all_folders_have_one_distinct_nonoverlapping_header_run_id": true,
+  "folders_sharing_header_run_ids": [],
+  "run_count": 4,
+  "runs": [
+    {
+      "run_label": "Sample1",
+      "file_count": 8,
+      "extensions": {
+        ".bai": 4,
+        ".bam": 4
+      },
+      "bytes": 3864232206,
+      "bam_count": 4,
+      "bam_with_eof_marker": 4,
+      "bam_missing_index": 0,
+      "bam_missing_header_run_id": 0,
+      "distinct_header_run_ids": 1,
+      "reference_dictionary_count": 1,
+      "header_device_classes": [
+        "P2S_prefix_inferred_P2_SOLO_unconfirmed"
+      ],
+      "header_program_versions": [
+        {
+          "program": "minknow",
+          "version": "6.10.12"
+        }
+      ],
+      "filename_barcode_labels": [],
+      "header_errors": {},
+      "files_changed_during_inspection": 0,
+      "investigator_reported_device": "P2_SOLO",
+      "investigator_reports_complete_run_export": true,
+      "whole_run_export_completeness_independently_verified": null,
+      "training_calibration_membership": "unknown",
+      "related_patient_library_flowcell_group": null,
+      "checkpoint_feature_availability": "unverified; BAM headers do not provide the full model feature history",
+      "reconciled_final_yield": null,
+      "analysis_role": "unassigned; file/header intake only"
+    },
+    {
+      "run_label": "Sample2",
+      "file_count": 10,
+      "extensions": {
+        ".bai": 5,
+        ".bam": 5
+      },
+      "bytes": 3356284163,
+      "bam_count": 5,
+      "bam_with_eof_marker": 5,
+      "bam_missing_index": 0,
+      "bam_missing_header_run_id": 0,
+      "distinct_header_run_ids": 1,
+      "reference_dictionary_count": 1,
+      "header_device_classes": [
+        "P2S_prefix_inferred_P2_SOLO_unconfirmed"
+      ],
+      "header_program_versions": [
+        {
+          "program": "minknow",
+          "version": "6.10.12"
+        }
+      ],
+      "filename_barcode_labels": [],
+      "header_errors": {},
+      "files_changed_during_inspection": 0,
+      "investigator_reported_device": "P2_SOLO",
+      "investigator_reports_complete_run_export": true,
+      "whole_run_export_completeness_independently_verified": null,
+      "training_calibration_membership": "unknown",
+      "related_patient_library_flowcell_group": null,
+      "checkpoint_feature_availability": "unverified; BAM headers do not provide the full model feature history",
+      "reconciled_final_yield": null,
+      "analysis_role": "unassigned; file/header intake only"
+    },
+    {
+      "run_label": "Sample3",
+      "file_count": 66,
+      "extensions": {
+        ".bai": 33,
+        ".bam": 33
+      },
+      "bytes": 679195798,
+      "bam_count": 33,
+      "bam_with_eof_marker": 33,
+      "bam_missing_index": 0,
+      "bam_missing_header_run_id": 0,
+      "distinct_header_run_ids": 1,
+      "reference_dictionary_count": 1,
+      "header_device_classes": [
+        "P2S_prefix_inferred_P2_SOLO_unconfirmed"
+      ],
+      "header_program_versions": [
+        {
+          "program": "minknow",
+          "version": "6.10.12"
+        }
+      ],
+      "filename_barcode_labels": [
+        "barcode12"
+      ],
+      "header_errors": {},
+      "files_changed_during_inspection": 0,
+      "investigator_reported_device": "P2_SOLO",
+      "investigator_reports_complete_run_export": true,
+      "whole_run_export_completeness_independently_verified": null,
+      "training_calibration_membership": "unknown",
+      "related_patient_library_flowcell_group": null,
+      "checkpoint_feature_availability": "unverified; BAM headers do not provide the full model feature history",
+      "reconciled_final_yield": null,
+      "analysis_role": "unassigned; file/header intake only"
+    },
+    {
+      "run_label": "Sample4",
+      "file_count": 16,
+      "extensions": {
+        ".bai": 8,
+        ".bam": 8
+      },
+      "bytes": 1364131794,
+      "bam_count": 8,
+      "bam_with_eof_marker": 8,
+      "bam_missing_index": 0,
+      "bam_missing_header_run_id": 0,
+      "distinct_header_run_ids": 1,
+      "reference_dictionary_count": 1,
+      "header_device_classes": [
+        "P2S_prefix_inferred_P2_SOLO_unconfirmed"
+      ],
+      "header_program_versions": [
+        {
+          "program": "minknow",
+          "version": "6.10.12"
+        }
+      ],
+      "filename_barcode_labels": [
+        "barcode05"
+      ],
+      "header_errors": {},
+      "files_changed_during_inspection": 0,
+      "investigator_reported_device": "P2_SOLO",
+      "investigator_reports_complete_run_export": true,
+      "whole_run_export_completeness_independently_verified": null,
+      "training_calibration_membership": "unknown",
+      "related_patient_library_flowcell_group": null,
+      "checkpoint_feature_availability": "unverified; BAM headers do not provide the full model feature history",
+      "reconciled_final_yield": null,
+      "analysis_role": "unassigned; file/header intake only"
+    }
+  ],
+  "limitations": [
+    "Distinct acquisitions do not establish independent patients, materials, flow cells or exclusion from model development.",
+    "EOF markers and indexes do not prove BAM body integrity, index validity or completeness of the exported run.",
+    "File transfer mtimes do not establish sequencing or live availability times.",
+    "Filename barcode labels may indicate a selected-barcode export; whole-run scope needs confirmation.",
+    "Historical read timestamps, if present, do not establish when basecalls or live statistics became available.",
+    "The inventory is a point-in-time observation; later transfers require a new inventory."
+  ]
+}

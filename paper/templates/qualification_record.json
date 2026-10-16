@@ -1,0 +1,24 @@
+{
+  "purpose": "NON-STUDY machine qualification; not independent evaluation",
+  "site": null,
+  "operator": null,
+  "plan_locked_at_utc": null,
+  "non_study_material_designation": null,
+  "hardware_os": null,
+  "software_archive_sha256": null,
+  "core_api_basecaller_versions": null,
+  "filter_contract_sha256": null,
+  "clock_sync_method": null,
+  "measured_clock_error_seconds": null,
+  "workloads_batching_barcodes_and_repetitions": null,
+  "site_acceptance_limits": {
+    "dashboard_latency_p95_seconds": null,
+    "monitor_process_tree_rss_mib": null,
+    "monitor_cpu_budget_and_measurement_definition": null,
+    "maximum_effect_on_basecalling": null
+  },
+  "prespecified_feature_tolerances": null,
+  "case_matrix_file": null,
+  "interpretation": "Complete before initialization. Null means unknown/incomplete, never passed. Store measured results/deviations in a separate report without editing the frozen plan.",
+  "public_extract_note": "Retired personal-integration fields omitted. The unchanged original is preserved in the private source snapshot; this extract is not the original frozen record."
+}

@@ -1,0 +1,273 @@
+{
+  "scope": "MinION dataset metadata and feature-source availability audit; no forecast scoring or yield results.",
+  "audited_at_utc": "2026-10-15T12:55:52.186604+00:00",
+  "investigator_statement": "Seven new MinION cases did not contribute to developing the model. CSF protocols were set to 12 h and fresh-tissue protocols to 3 h; library choices depend on sample and flow-cell reuse.",
+  "runs": [
+    {
+      "run_label": "S1",
+      "report_sha256": "5ad417f15e5ff97ce12317844e6d912838423fb17baddcdc35b59f37254ef5c1",
+      "device_type": "MINION_MK1D",
+      "kit": "SQK-RBK114-24",
+      "reported_runtime_limit_hours": 3.0,
+      "acquisition_duration_hours": 2.9993328638888888,
+      "protocol_state": "PROTOCOL_COMPLETED",
+      "stop_origin_type": [
+        "run_until"
+      ],
+      "flowcell_group": "FlowcellGroup1",
+      "related_patient_library_group": null,
+      "final_summary_present": true,
+      "sequencing_summary_present": true,
+      "bam_file_count": 18,
+      "statistics_sections_present": [
+        "acquisition_output",
+        "basecall_boxplot",
+        "temperature",
+        "duty_time"
+      ],
+      "aggregate_snapshot_count": 19,
+      "checkpoint_times_present": {
+        "30": true,
+        "60": true,
+        "120": true
+      },
+      "training_calibration_overlap": "investigator reports no use in model development; original membership records not reconciled",
+      "contemporaneous_feature_availability_verified": false,
+      "forecast_evaluation_performed": false,
+      "specimen_group": "Specimen_S1",
+      "library_group": "Library_S1",
+      "specimen_library_group_source": "investigator confirmation"
+    },
+    {
+      "run_label": "S2",
+      "report_sha256": "3d1c6cf0645ba088e02638488c717256e513645ea0be4a57198221e0daa8446c",
+      "device_type": "MINION_MK1D",
+      "kit": "SQK-RBK114-24",
+      "reported_runtime_limit_hours": 3.0,
+      "acquisition_duration_hours": 2.99931633,
+      "protocol_state": "PROTOCOL_COMPLETED",
+      "stop_origin_type": [
+        "run_until"
+      ],
+      "flowcell_group": "FlowcellGroup2",
+      "related_patient_library_group": null,
+      "final_summary_present": true,
+      "sequencing_summary_present": true,
+      "bam_file_count": 18,
+      "statistics_sections_present": [
+        "acquisition_output",
+        "basecall_boxplot",
+        "temperature",
+        "duty_time"
+      ],
+      "aggregate_snapshot_count": 19,
+      "checkpoint_times_present": {
+        "30": true,
+        "60": true,
+        "120": true
+      },
+      "training_calibration_overlap": "investigator reports no use in model development; original membership records not reconciled",
+      "contemporaneous_feature_availability_verified": false,
+      "forecast_evaluation_performed": false,
+      "specimen_group": "Specimen_S2",
+      "library_group": "Library_S2",
+      "specimen_library_group_source": "investigator confirmation"
+    },
+    {
+      "run_label": "S3",
+      "report_sha256": "98621f4c599ed8a860eb08f08eba7e4bb28a15451d61f0106f884513a27cf98b",
+      "device_type": "MINION_MK1D",
+      "kit": "SQK-NBD114-24",
+      "reported_runtime_limit_hours": 12.0,
+      "acquisition_duration_hours": 11.97762428888889,
+      "protocol_state": "PROTOCOL_COMPLETED",
+      "stop_origin_type": [
+        "run_until"
+      ],
+      "flowcell_group": "FlowcellGroup1",
+      "related_patient_library_group": null,
+      "final_summary_present": true,
+      "sequencing_summary_present": true,
+      "bam_file_count": 72,
+      "statistics_sections_present": [
+        "acquisition_output",
+        "basecall_boxplot",
+        "temperature",
+        "duty_time"
+      ],
+      "aggregate_snapshot_count": 25,
+      "checkpoint_times_present": {
+        "30": true,
+        "60": true,
+        "120": true
+      },
+      "training_calibration_overlap": "investigator reports no use in model development; original membership records not reconciled",
+      "contemporaneous_feature_availability_verified": false,
+      "forecast_evaluation_performed": false,
+      "specimen_group": "Specimen_S3",
+      "library_group": "Library_S3",
+      "specimen_library_group_source": "investigator confirmation"
+    },
+    {
+      "run_label": "S4",
+      "report_sha256": "32a1d816dd6ebd59e5e26a7cbb3aa6ca68ee852baec034298e3a14158a6801d7",
+      "device_type": "MINION_MK1D",
+      "kit": "SQK-LSK114",
+      "reported_runtime_limit_hours": 12.0,
+      "acquisition_duration_hours": 12.000166431111111,
+      "protocol_state": "PROTOCOL_COMPLETED",
+      "stop_origin_type": [
+        "run_until"
+      ],
+      "flowcell_group": "FlowcellGroup3",
+      "related_patient_library_group": null,
+      "final_summary_present": true,
+      "sequencing_summary_present": true,
+      "bam_file_count": 0,
+      "statistics_sections_present": [
+        "acquisition_output",
+        "basecall_boxplot",
+        "temperature",
+        "duty_time"
+      ],
+      "aggregate_snapshot_count": 25,
+      "checkpoint_times_present": {
+        "30": true,
+        "60": true,
+        "120": true
+      },
+      "training_calibration_overlap": "investigator reports no use in model development; original membership records not reconciled",
+      "contemporaneous_feature_availability_verified": false,
+      "forecast_evaluation_performed": false,
+      "specimen_group": "Specimen_S4",
+      "library_group": "Library_S4",
+      "specimen_library_group_source": "investigator confirmation"
+    },
+    {
+      "run_label": "S5",
+      "report_sha256": "e46f70be17266d5a765da47ac7cbc95dd079262bbae2921582dc7115908affb0",
+      "device_type": "MINION_MK1D",
+      "kit": "SQK-NBD114-24",
+      "reported_runtime_limit_hours": 12.0,
+      "acquisition_duration_hours": 11.988873803055556,
+      "protocol_state": "PROTOCOL_COMPLETED",
+      "stop_origin_type": [
+        "run_until"
+      ],
+      "flowcell_group": "FlowcellGroup4",
+      "related_patient_library_group": null,
+      "final_summary_present": true,
+      "sequencing_summary_present": true,
+      "bam_file_count": 72,
+      "statistics_sections_present": [
+        "acquisition_output",
+        "basecall_boxplot",
+        "temperature",
+        "duty_time"
+      ],
+      "aggregate_snapshot_count": 25,
+      "checkpoint_times_present": {
+        "30": true,
+        "60": true,
+        "120": true
+      },
+      "training_calibration_overlap": "investigator reports no use in model development; original membership records not reconciled",
+      "contemporaneous_feature_availability_verified": false,
+      "forecast_evaluation_performed": false,
+      "specimen_group": "Specimen_S5",
+      "library_group": "Library_S5",
+      "specimen_library_group_source": "investigator confirmation"
+    },
+    {
+      "run_label": "S6",
+      "report_sha256": "f16fd1a77fff99f781e9686cf7f8c8e607bb5d69a6944b1484610188903e4604",
+      "device_type": "MINION_MK1D",
+      "kit": "SQK-NBD114-24",
+      "reported_runtime_limit_hours": 12.0,
+      "acquisition_duration_hours": 11.98936474361111,
+      "protocol_state": "PROTOCOL_COMPLETED",
+      "stop_origin_type": [
+        "run_until"
+      ],
+      "flowcell_group": "FlowcellGroup5",
+      "related_patient_library_group": null,
+      "final_summary_present": true,
+      "sequencing_summary_present": true,
+      "bam_file_count": 72,
+      "statistics_sections_present": [
+        "acquisition_output",
+        "basecall_boxplot",
+        "temperature",
+        "duty_time"
+      ],
+      "aggregate_snapshot_count": 25,
+      "checkpoint_times_present": {
+        "30": true,
+        "60": true,
+        "120": true
+      },
+      "training_calibration_overlap": "investigator reports no use in model development; original membership records not reconciled",
+      "contemporaneous_feature_availability_verified": false,
+      "forecast_evaluation_performed": false,
+      "specimen_group": "Specimen_S6",
+      "library_group": "Library_S6",
+      "specimen_library_group_source": "investigator confirmation"
+    },
+    {
+      "run_label": "S7",
+      "report_sha256": "6e3ae9f32f335fa3ce79475bb635549e3710508a4bec8a0a5703c200261d4c19",
+      "device_type": "MINION_MK1D",
+      "kit": "SQK-NBD114-24",
+      "reported_runtime_limit_hours": 12.0,
+      "acquisition_duration_hours": 4.281856329166667,
+      "protocol_state": "PROTOCOL_STOPPED_BY_USER",
+      "stop_origin_type": [
+        "user"
+      ],
+      "flowcell_group": "FlowcellGroup6",
+      "related_patient_library_group": null,
+      "final_summary_present": true,
+      "sequencing_summary_present": true,
+      "bam_file_count": 26,
+      "statistics_sections_present": [
+        "acquisition_output",
+        "basecall_boxplot",
+        "temperature",
+        "duty_time"
+      ],
+      "aggregate_snapshot_count": 9,
+      "checkpoint_times_present": {
+        "30": true,
+        "60": true,
+        "120": true
+      },
+      "training_calibration_overlap": "investigator reports no use in model development; original membership records not reconciled",
+      "contemporaneous_feature_availability_verified": false,
+      "forecast_evaluation_performed": false,
+      "specimen_group": "Specimen_S7",
+      "library_group": "Library_S7",
+      "specimen_library_group_source": "investigator confirmation",
+      "duration_reconciliation": {
+        "investigator_expected_duration": "11 h 59 min (queried)",
+        "aggregate_snapshot_last_seconds": 15480,
+        "sequencing_summary_latest_read_end_seconds": 15413.4912,
+        "throughput_last_minute": 257,
+        "sequencing_summary_protocol_id_matches_report": true,
+        "status": "Resolved: investigator confirms intentional early stop once sufficient data were available. The uploaded duration of about 4 h 17 min is retained; 12 h was the configured limit.",
+        "exact_timestamps": "Retained only in private source reports and local archive; omitted from versioned evidence."
+      },
+      "adjudicated_stop_reason": "intentional_stop_sufficient_data",
+      "stop_reason_source": "Investigator checked the run and confirmed stopping because sufficient data had been collected for the intended purpose.",
+      "endpoint_interpretation": "Observed final passed yield after actual stopping and basecalling completion, subject to source reconciliation; not estimated yield at 12 hours."
+    }
+  ],
+  "distinct_reported_flowcells": 6,
+  "open_questions": [
+    "Per-feature retrospective extraction definitions and timing; final-yield reconciliation.",
+    "Patient-level relationships or restart relationships beyond confirmed distinct specimens/libraries and detected shared flow cell.",
+    "Selection is described as random; exact selection mechanism and available sampling frame are not documented."
+  ],
+  "interpretation": "Enough material to start a small retrospective evaluation, not evidence of live operation or precise calibration. Treat snapshots as repeated observations within runs and shared flow cells as related groups.",
+  "selection_statement": "Investigator describes these as random MinION samples; sampling frame and randomization method unspecified. Not documented as consecutive recruitment.",
+  "specimen_library_statement": "Investigator confirms no cases share a specimen or library and that the runs were sequenced on different dates. Shared patient identity was not explicitly addressed."
+}

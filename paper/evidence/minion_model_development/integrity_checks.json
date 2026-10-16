@@ -1,0 +1,13 @@
+{
+  "sample_label_overlap": 0,
+  "flow_cell_id_overlap": 0,
+  "protocol_run_id_overlap": 0,
+  "acquisition_run_id_overlap": 0,
+  "all_checkpoints_keep_same_partition": true,
+  "unique_fit_runs": 146,
+  "unique_calibration_runs": 37,
+  "artifact_hashes_valid": true,
+  "bundled_model_hashes_unchanged": true,
+  "synthetic_test_suite": "107 passed; Python 3.9.25, scikit-learn 1.6.1",
+  "calibration_prediction_roundtrip": "109 checkpoint predictions matched the serialized runtime consumer; finite JSON; PromethION rejected"
+}

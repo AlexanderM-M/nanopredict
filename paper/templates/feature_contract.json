@@ -1,0 +1,162 @@
+{
+  "device_is_promethion": {
+    "unit": "dimensionless",
+    "definition_id": "UNVERIFIED"
+  },
+  "minimum_q_score_setting": {
+    "unit": "Phred",
+    "definition_id": "UNVERIFIED"
+  },
+  "planned_run_limit_hours": {
+    "unit": "hours",
+    "definition_id": "UNVERIFIED"
+  },
+  "series_resolution_seconds": {
+    "unit": "seconds",
+    "definition_id": "UNVERIFIED"
+  },
+  "observed_through_seconds": {
+    "unit": "seconds",
+    "definition_id": "UNVERIFIED"
+  },
+  "observed_estimated_bases": {
+    "unit": "bases",
+    "definition_id": "UNVERIFIED"
+  },
+  "observed_passed_bases": {
+    "unit": "bases",
+    "definition_id": "UNVERIFIED"
+  },
+  "observed_failed_bases": {
+    "unit": "bases",
+    "definition_id": "UNVERIFIED"
+  },
+  "observed_total_reads": {
+    "unit": "count",
+    "definition_id": "UNVERIFIED"
+  },
+  "observed_passed_reads": {
+    "unit": "count",
+    "definition_id": "UNVERIFIED"
+  },
+  "observed_failed_reads": {
+    "unit": "count",
+    "definition_id": "UNVERIFIED"
+  },
+  "observed_passed_base_fraction": {
+    "unit": "dimensionless",
+    "definition_id": "UNVERIFIED"
+  },
+  "observed_passed_read_fraction": {
+    "unit": "dimensionless",
+    "definition_id": "UNVERIFIED"
+  },
+  "observed_mean_passed_read_length": {
+    "unit": "bases/read",
+    "definition_id": "UNVERIFIED"
+  },
+  "observed_mean_failed_read_length": {
+    "unit": "bases/read",
+    "definition_id": "UNVERIFIED"
+  },
+  "observed_mean_estimated_read_length": {
+    "unit": "bases/read",
+    "definition_id": "UNVERIFIED"
+  },
+  "observed_basecalling_completion_ratio": {
+    "unit": "dimensionless",
+    "definition_id": "UNVERIFIED"
+  },
+  "observed_average_estimated_bases_per_hour": {
+    "unit": "bases/hour",
+    "definition_id": "UNVERIFIED"
+  },
+  "observed_average_passed_bases_per_hour": {
+    "unit": "bases/hour",
+    "definition_id": "UNVERIFIED"
+  },
+  "observed_recent_estimated_bases_per_hour": {
+    "unit": "bases/hour",
+    "definition_id": "UNVERIFIED"
+  },
+  "observed_recent_passed_bases_per_hour": {
+    "unit": "bases/hour",
+    "definition_id": "UNVERIFIED"
+  },
+  "observed_qscore_lower": {
+    "unit": "Phred",
+    "definition_id": "UNVERIFIED"
+  },
+  "observed_qscore_mode": {
+    "unit": "Phred",
+    "definition_id": "UNVERIFIED"
+  },
+  "observed_qscore_upper": {
+    "unit": "Phred",
+    "definition_id": "UNVERIFIED"
+  },
+  "observed_translocation_q25": {
+    "unit": "bases/second",
+    "definition_id": "UNVERIFIED"
+  },
+  "observed_translocation_median": {
+    "unit": "bases/second",
+    "definition_id": "UNVERIFIED"
+  },
+  "observed_translocation_q75": {
+    "unit": "bases/second",
+    "definition_id": "UNVERIFIED"
+  },
+  "observed_temperature": {
+    "unit": "degrees_C",
+    "definition_id": "UNVERIFIED"
+  },
+  "observed_target_temperature": {
+    "unit": "degrees_C",
+    "definition_id": "UNVERIFIED"
+  },
+  "pore_activity_sequencing_percent": {
+    "unit": "percent",
+    "definition_id": "UNVERIFIED"
+  },
+  "pore_activity_pore_available_percent": {
+    "unit": "percent",
+    "definition_id": "UNVERIFIED"
+  },
+  "pore_activity_unavailable_percent": {
+    "unit": "percent",
+    "definition_id": "UNVERIFIED"
+  },
+  "pore_activity_inactive_percent": {
+    "unit": "percent",
+    "definition_id": "UNVERIFIED"
+  },
+  "pore_activity_unclassified_percent": {
+    "unit": "percent",
+    "definition_id": "UNVERIFIED"
+  },
+  "pore_scan_pore_available_count": {
+    "unit": "count",
+    "definition_id": "UNVERIFIED"
+  },
+  "pore_scan_reserved_pore_count": {
+    "unit": "count",
+    "definition_id": "UNVERIFIED"
+  },
+  "pore_scan_unavailable_count": {
+    "unit": "count",
+    "definition_id": "UNVERIFIED"
+  },
+  "pore_scan_saturated_count": {
+    "unit": "count",
+    "definition_id": "UNVERIFIED"
+  },
+  "pore_scan_zero_count": {
+    "unit": "count",
+    "definition_id": "UNVERIFIED"
+  },
+  "pore_scan_inactive_count": {
+    "unit": "count",
+    "definition_id": "UNVERIFIED"
+  }
+}

@@ -1,0 +1,153 @@
+{
+  "source": "Investigator statements in this conversation; these are declarations, not recovery of original training membership.",
+  "selection": "Investigator-described random MinION cases; formal random sampling/consecutive recruitment not documented.",
+  "runs": {
+    "S1": {
+      "development_overlap": "none_reported",
+      "distinct_specimen_library": true,
+      "forecasts_used": false,
+      "stop_reason": "reported_protocol_completion",
+      "distinct_patient": true
+    },
+    "S2": {
+      "development_overlap": "none_reported",
+      "distinct_specimen_library": true,
+      "forecasts_used": false,
+      "stop_reason": "reported_protocol_completion",
+      "distinct_patient": true
+    },
+    "S3": {
+      "development_overlap": "none_reported",
+      "distinct_specimen_library": true,
+      "forecasts_used": false,
+      "stop_reason": "reported_protocol_completion",
+      "distinct_patient": true
+    },
+    "S4": {
+      "development_overlap": "none_reported",
+      "distinct_specimen_library": true,
+      "forecasts_used": false,
+      "stop_reason": "reported_protocol_completion",
+      "distinct_patient": true
+    },
+    "S5": {
+      "development_overlap": "none_reported",
+      "distinct_specimen_library": true,
+      "forecasts_used": false,
+      "stop_reason": "reported_protocol_completion",
+      "distinct_patient": true
+    },
+    "S6": {
+      "development_overlap": "none_reported",
+      "distinct_specimen_library": true,
+      "forecasts_used": false,
+      "stop_reason": "reported_protocol_completion",
+      "distinct_patient": true
+    },
+    "S7": {
+      "development_overlap": "none_reported",
+      "distinct_specimen_library": true,
+      "forecasts_used": false,
+      "stop_reason": "intentional_stop_sufficient_data",
+      "distinct_patient": true
+    },
+    "S8": {
+      "development_overlap": "none_reported",
+      "distinct_specimen_library": true,
+      "forecasts_used": false,
+      "stop_reason": "reported_protocol_completion",
+      "distinct_patient": true
+    },
+    "S9": {
+      "development_overlap": "none_reported",
+      "distinct_specimen_library": true,
+      "forecasts_used": false,
+      "stop_reason": "reported_protocol_completion",
+      "distinct_patient": true
+    },
+    "S10": {
+      "development_overlap": "none_reported",
+      "distinct_specimen_library": true,
+      "forecasts_used": false,
+      "stop_reason": "reported_protocol_completion",
+      "distinct_patient": true
+    },
+    "S11": {
+      "development_overlap": "none_reported",
+      "distinct_specimen_library": true,
+      "forecasts_used": false,
+      "stop_reason": "reported_protocol_completion",
+      "distinct_patient": true
+    },
+    "S12": {
+      "development_overlap": "none_reported",
+      "distinct_specimen_library": true,
+      "forecasts_used": false,
+      "stop_reason": "reported_protocol_completion",
+      "distinct_patient": true
+    },
+    "S13": {
+      "development_overlap": "none_reported",
+      "distinct_specimen_library": true,
+      "forecasts_used": false,
+      "stop_reason": "reported_protocol_completion",
+      "distinct_patient": true
+    },
+    "S14": {
+      "development_overlap": "none_reported",
+      "distinct_specimen_library": true,
+      "forecasts_used": false,
+      "stop_reason": "reported_protocol_completion",
+      "distinct_patient": true
+    },
+    "S15": {
+      "development_overlap": "none_reported",
+      "distinct_specimen_library": true,
+      "forecasts_used": false,
+      "stop_reason": "intentional_stop_sufficient_data",
+      "intended_workflow_hours": 3,
+      "configuration_error": true,
+      "explanation": "Investigator confirms a mistaken 72-hour setting for an intended 3-hour workflow; stopped after about 2 h 25 min because enough data were collected.",
+      "distinct_patient": true
+    },
+    "S16": {
+      "development_overlap": "none_reported",
+      "distinct_specimen_library": true,
+      "forecasts_used": false,
+      "stop_reason": "reported_protocol_completion",
+      "intended_workflow_hours": 3,
+      "configuration_error": true,
+      "explanation": "Investigator confirms a mistaken 6-hour setting for an intended 3-hour workflow; acquisition completed the configured duration.",
+      "distinct_patient": true
+    },
+    "S17": {
+      "development_overlap": "none_reported",
+      "distinct_specimen_library": true,
+      "forecasts_used": false,
+      "stop_reason": "reported_protocol_completion",
+      "distinct_patient": true
+    },
+    "S18": {
+      "development_overlap": "none_reported",
+      "distinct_specimen_library": true,
+      "forecasts_used": false,
+      "stop_reason": "reported_protocol_completion",
+      "distinct_patient": true
+    },
+    "S19": {
+      "development_overlap": "none_reported",
+      "distinct_specimen_library": true,
+      "forecasts_used": false,
+      "stop_reason": "reported_protocol_completion",
+      "distinct_patient": true
+    },
+    "S20": {
+      "development_overlap": "none_reported",
+      "distinct_specimen_library": true,
+      "forecasts_used": false,
+      "stop_reason": "reported_protocol_completion",
+      "distinct_patient": true
+    }
+  },
+  "patient_statement": "Investigator confirms every uploaded sample is from a different patient."
+}

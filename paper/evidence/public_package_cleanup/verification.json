@@ -1,0 +1,10 @@
+{
+  "date": "2026-10-16",
+  "scope": "Public distribution now contains yield forecasting and monitoring only; retired integration preserved privately.",
+  "source_tests_passed": 90,
+  "installed_wheel_dashboard_tests_passed": 9,
+  "personal_snapshot_tests_passed": 8,
+  "wheel_sha256": "6bbfa404be5b02c01b8ea9b943a841cbb06f7b417b145ab6f8431bb178d90b6c",
+  "bundled_forecast_models_changed": false,
+  "remote_status": "Authenticated-computer handoff requested; local cleanup does not update GitHub."
+}
