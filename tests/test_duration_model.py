@@ -54,7 +54,9 @@ class DurationModelTests(unittest.TestCase):
         self.assertEqual(DurationYieldRegressor(learn_scale=True).fit(X, [3] * 3).scale_, 2)
 
     def test_group_folds_and_baseline_selection(self):
-        X = np.array([[i * 1e6, 1800, 3] for i in range(1, 21)])
+        # Binary-exact Gb values keep the baseline error exactly zero on every
+        # platform; rounding noise must not decide this perfect-fit fixture.
+        X = np.array([[i / 32 * 1e9, 1800, 3] for i in range(1, 21)])
         y = X[:, 0] / 1e9 * 6
         groups = np.repeat(np.arange(10), 2)
         original = DurationYieldRegressor.fit
@@ -72,6 +74,27 @@ class DurationModelTests(unittest.TestCase):
 
 
 class DurationArtifactTests(unittest.TestCase):
+    def test_initializer_closes_database_and_commits_freeze(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            protocol = tmp / 'protocol.txt'; protocol.write_text('Database lifecycle check')
+            connect = study.sqlite3.connect
+            connections = []
+            def retain_connection(*args, **kwargs):
+                connection = connect(*args, **kwargs)
+                connections.append(connection)
+                return connection
+            with patch.object(study.sqlite3, 'connect', side_effect=retain_connection):
+                study.initialize(tmp / 'study', protocol, qualification=True)
+            self.assertEqual(len(connections), 1)
+            with self.assertRaises(study.sqlite3.ProgrammingError):
+                connections[0].execute('SELECT 1')
+            reopened = study.Study(tmp / 'study')
+            try:
+                reopened.verify()
+            finally:
+                reopened.close()
+
     def test_default_dashboard_and_new_freeze_use_replacement(self):
         with patch.dict('os.environ', {}, clear=True):
             app = DashboardApplication(source='replay')

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+from contextlib import closing
 import csv
 import hashlib
 import hmac
@@ -177,7 +178,9 @@ def initialize(root, protocol, thresholds=(1., 5., 10.), *, qualification=False,
     # The evaluator reconstructs these exact UTF-8 bytes with an LF terminator.
     # Binary output prevents Windows text mode from translating LF to CRLF.
     (root / 'freeze.json').write_bytes((encode(manifest) + '\n').encode('utf-8'))
-    with sqlite3.connect(root / 'study.sqlite') as db:
+    # SQLite's context manager commits/rolls back but does not close the handle.
+    # Close explicitly so Windows can release the database without waiting for GC.
+    with closing(sqlite3.connect(root / 'study.sqlite')) as db, db:
         db.executescript('''
         PRAGMA journal_mode=WAL;
         CREATE TABLE metadata (freeze_sha256 TEXT NOT NULL);
