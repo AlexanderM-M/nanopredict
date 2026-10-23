@@ -8,6 +8,19 @@ prediction at 30, 60, and 120 minutes is currently available for MinION runs.
 A version-independent BAM fallback and an anonymous historical replay mode are
 included.
 
+## Dashboard preview
+
+[![NanoPredict dashboard showing an anonymous MinION replay, predicted final yield, target probability, observed yield and run assessment.](docs/images/dashboard-preview.png)](docs/images/dashboard-preview.png)
+
+*Actual interface using the packaged anonymous replay data at the 60-minute
+checkpoint. This is a demonstration, not a live sequencing run or validation result.*
+
+Try it locally without a sequencer after installation:
+
+```powershell
+nanopredict --replay
+```
+
 > **Research-use prototype:** prospective validation is required. Predictions
 > and suspected-problem flags must not replace MinKNOW QC or operator judgement.
 
