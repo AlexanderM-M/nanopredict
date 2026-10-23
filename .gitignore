@@ -38,7 +38,8 @@ nanopore_run_status.csv
 *.sqlite
 *.sqlite-wal
 *.sqlite-shm
-paper/archive/
+# Manuscript, evidence and author-review files stay local.
+/paper/
 
 # Local research inputs and historical workspace backups.
 datasets/
@@ -54,7 +55,3 @@ archive/
 /sample_sheet_*.csv
 /output_hash_*.csv
 /sequencing-machine-*.txt
-/paper/*.docx
-/paper/*.zip
-/paper/*.zip.sha256
-/paper/author_details_to_complete_*.txt

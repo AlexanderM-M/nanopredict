@@ -27,7 +27,7 @@ from evaluate_frozen import point_stats, write_csv
 
 HORIZONS = (30, 60, 120)
 THRESHOLDS = (1., 5., 10.)
-FEATURES = tuple(json.loads((ROOT / 'paper/templates/feature_contract.json').read_text()))
+FEATURES = tuple(json.loads((ROOT / 'tools/paper/feature_contract.json').read_text()))
 
 
 def digest(path):
@@ -130,7 +130,7 @@ def freeze(extraction, outcomes_path, plan_path, output):
     checks = {
         ROOT / 'tools/paper/extract_retrospective.py': manifest['script_sha256'],
         ROOT / 'src/nanopredict/live.py': manifest['live_helper_sha256'],
-        ROOT / 'paper/templates/feature_contract.json': manifest['feature_contract_sha256'],
+        ROOT / 'tools/paper/feature_contract.json': manifest['feature_contract_sha256'],
         ROOT / 'tools/paper/reconcile_retrospective_yield.py': outcomes['script_sha256'],
         outcomes_path: plan['endpoint']['reconciliation_manifest_sha256'],
     }
@@ -149,7 +149,7 @@ def freeze(extraction, outcomes_path, plan_path, output):
     # Freeze every runtime module plus analysis/extraction sources, models and contract.
     files = list((ROOT / 'src/nanopredict').glob('*.py')) + list(models_dir().glob('*.joblib'))
     files += [ROOT / 'tools/paper' / n for n in ('evaluate_retrospective.py', 'evaluate_frozen.py', 'extract_retrospective.py', 'reconcile_retrospective_yield.py')]
-    files += [ROOT / 'paper/templates/feature_contract.json', ROOT / 'src/nanopredict/data/replay_features_anonymous.csv']
+    files += [ROOT / 'tools/paper/feature_contract.json', ROOT / 'src/nanopredict/data/replay_features_anonymous.csv']
     files += [output / name for name in sources]
     frozen = {'schema': 'nanopredict-retrospective-freeze-v1', 'frozen_at_utc': datetime.now(timezone.utc).isoformat(),
               'scope': 'Retrospective report reconstruction; not contemporaneous or prospective prediction',

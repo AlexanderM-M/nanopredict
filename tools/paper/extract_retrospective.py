@@ -23,7 +23,7 @@ from minknow_api import report_data_pb2, statistics_pb2
 from nanopredict.live import _number, _pore_activity, _pore_scan, _planned_hours, _ratio
 
 HORIZONS = (30, 60, 120)
-FEATURES = tuple(json.loads((ROOT / 'paper/templates/feature_contract.json').read_text()))
+FEATURES = tuple(json.loads((ROOT / 'tools/paper/feature_contract.json').read_text()))
 
 
 def sha256(path):
@@ -317,7 +317,7 @@ def run(data_root, output, declarations):
         'scope': 'Candidate feature extraction and metadata audit only; no predictions, final-yield computation, fitting or performance scoring.',
         'run_count': len(cohorts), 'checkpoint_rows': len(all_rows), 'distinct_flowcells': len(cells),
         'script_sha256': sha256(Path(__file__)),
-        'feature_contract_sha256': sha256(ROOT / 'paper/templates/feature_contract.json'),
+        'feature_contract_sha256': sha256(ROOT / 'tools/paper/feature_contract.json'),
         'live_helper_sha256': sha256(ROOT / 'src/nanopredict/live.py'),
         'declarations': declarations,
         'report_sources': hashes,

@@ -1,7 +1,0 @@
-run,checkpoint_minutes,actual_final_mb,recorded_previous_mb,duration_posthoc_mb,cumulative_mb,previous_model_family,evidence
-A,30,225.955031,407.7761787283907,327.3971966383519,227.17498799999998,legacy mixed-device,post-hoc diagnostic; both runs informed design; same flowcell
-A,60,225.955031,593.1181483496686,255.27185818636428,236.147145,legacy mixed-device,post-hoc diagnostic; both runs informed design; same flowcell
-A,120,225.955031,546.2729953053889,240.43408199050282,232.3850535,legacy mixed-device,post-hoc diagnostic; both runs informed design; same flowcell
-B,30,136.929085,406.5737052564972,237.2898999410794,164.65116600000002,previous MinION-only,post-hoc diagnostic; both runs informed design; same flowcell
-B,60,136.929085,296.8770257131111,160.18626534209469,148.18527,previous MinION-only,post-hoc diagnostic; both runs informed design; same flowcell
-B,120,136.929085,210.38984494877613,144.7585966099944,139.912503,previous MinION-only,post-hoc diagnostic; both runs informed design; same flowcell

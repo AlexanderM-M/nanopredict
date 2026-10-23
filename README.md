@@ -179,9 +179,7 @@ ETA, and completed-BAM monitoring. The calibrated final-
 yield card is deliberately disabled: PromethION forecasting has not been
 independently validated. Version 0.11.0 bundles the MinION-only duration-aware
 models developed on 22 October 2026. Earlier mixed-device model results remain
-historical evidence; they do not describe the replacement models. See the
-[replacement record](paper/evidence/duration_model_default_replacement/replacement.json)
-and [development results](paper/evidence/duration_model_development/summary.json).
+historical evidence; they do not describe the replacement models.
 Monitoring support does not establish forecast validity.
 
 ### Live problem detection
@@ -294,18 +292,17 @@ and calibration partitions stay separate. Development and post-hoc diagnostic
 results do not establish independent accuracy; simple extrapolation remains a
 required comparator, especially for short runs.
 
-## Model provenance and paper preparation
+## Model scope and study recording
 
 The packaged intervals use historical residual calibration; nominal 90% coverage
 is not evidence of 90% coverage on future runs. Replay demonstrates software
 behaviour and must not be used as independent validation of bundled models.
-The original analysis folder `nanoprediction` is not included. An audit,
-reproducible exploratory retraining benchmark, feature timing review, validation
-protocols and manuscript draft are in [paper/README.md](paper/README.md).
-For a frozen, blinded prospective study, use the separate headless recorder
-`python -m nanopredict.study --help` and follow the
-[operator instructions](paper/operator_instructions.md). This collection path
-has simulated fixture coverage; real-device validation remains outstanding.
+For prospective study recording, use the separate headless recorder
+`python -m nanopredict.study --help` with your study protocol. This collection
+path has simulated fixture coverage; real-device validation remains outstanding.
+The development tools and their feature contract remain in `tools/paper/`.
+Manuscript export and local transfer tools require separately retained author
+inputs; manuscript files and research evidence are not part of this repository.
 
 ## License
 
@@ -316,10 +313,11 @@ any warranty.
 ## Local workspace layout
 
 Use the repository root as the single working checkout. `src/`, `tests/`,
-`tools/`, `paper/`, `.github/`, launchers and packaging files belong to the
-repository. `datasets/` holds local validation inputs; `archive/` holds historical
-transfers and source snapshots. Both are ignored by Git. `paper/archive/` retains
-private frozen analyses and the original sequencing-machine qualification package.
+`tools/`, `.github/`, launchers and packaging files belong to the repository.
+`datasets/` holds local validation inputs; `archive/` holds historical transfers
+and source snapshots. `paper/` holds local manuscripts, evidence and private
+frozen analyses, including the original sequencing-machine qualification package.
+All three directories are ignored by Git.
 These local records are not recreated by a fresh clone. Keep the original
 qualification package with any recorder initialized from it; use a fresh freeze
 for a future phase using changed source.

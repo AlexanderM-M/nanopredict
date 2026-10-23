@@ -31,7 +31,7 @@ from sklearn.preprocessing import StandardScaler
 from threadpoolctl import threadpool_limits
 from nanopredict.predict_calibrated import CalibratedYieldPredictor
 
-FEATURES = tuple(json.loads((ROOT/'paper/templates/feature_contract.json').read_text()))
+FEATURES = tuple(json.loads((ROOT/'tools/paper/feature_contract.json').read_text()))
 DEVICE = 'MINION_MK1D'
 SEED = 20261016
 CANDIDATES = tuple([{'family': 'log_ridge', 'alpha': a} for a in (1., 10., 100.)] +

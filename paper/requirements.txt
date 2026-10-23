@@ -1,2 +1,0 @@
-# Additional figure dependency; runtime and analysis dependencies are pinned in pyproject.toml.
-matplotlib==3.9.4

@@ -59,7 +59,7 @@ def main():
     files += [p for p in (ROOT / 'src/nanopredict').rglob('*') if p.is_file() and '__pycache__' not in p.parts and p.suffix in ('.py', '.html', '.css', '.js', '.json', '.csv', '.joblib')]
     files += [ROOT / 'tools/paper' / n for n in ('train_duration.py', 'train_minion.py', 'evaluate_frozen.py', 'package_duration_candidate.py')]
     files += [ROOT / 'tests' / n for n in ('test_duration_model.py', 'test_minion_training.py', 'test_study.py', 'test_dashboard.py', 'test_report.py', 'test_live.py')]
-    files += [ROOT / 'paper/templates/feature_contract.json']
+    files += [ROOT / 'tools/paper/feature_contract.json']
     for p in files:
         payload['runtime/' + p.relative_to(ROOT).as_posix()] = p.read_bytes()
     payload['INSTALL-CODEX.txt'] = INSTALL.encode()
