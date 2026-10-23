@@ -1,0 +1,399 @@
+{
+  "status": "Development candidate; not independently validated or automatically deployed",
+  "results": [
+    {
+      "horizon_minutes": 30,
+      "chosen_config": {
+        "half_life_hours": 6.0,
+        "learn_scale": true
+      },
+      "fitted_scale": 1.7608712007480194,
+      "fit_rows": 133,
+      "calibration_rows": 32,
+      "fit_groups": 56,
+      "calibration_groups": 18,
+      "selection_scores": [
+        {
+          "config": {
+            "half_life_hours": null,
+            "learn_scale": false
+          },
+          "group_mae_gb": 0.4225327785484693,
+          "short_group_mae_gb": 0.09784624722063492,
+          "run_mae_gb": 0.3139903460902255
+        },
+        {
+          "config": {
+            "half_life_hours": 3.0,
+            "learn_scale": false
+          },
+          "group_mae_gb": 0.28662663321734566,
+          "short_group_mae_gb": 0.16915138660146792,
+          "run_mae_gb": 0.27950348649937584
+        },
+        {
+          "config": {
+            "half_life_hours": 6.0,
+            "learn_scale": false
+          },
+          "group_mae_gb": 0.24074875850026226,
+          "short_group_mae_gb": 0.13733052778403737,
+          "run_mae_gb": 0.23166881121439237
+        },
+        {
+          "config": {
+            "half_life_hours": 12.0,
+            "learn_scale": false
+          },
+          "group_mae_gb": 0.2114967936712537,
+          "short_group_mae_gb": 0.11724074562991288,
+          "run_mae_gb": 0.20009673942600734
+        },
+        {
+          "config": {
+            "half_life_hours": 24.0,
+            "learn_scale": false
+          },
+          "group_mae_gb": 0.24182964981367702,
+          "short_group_mae_gb": 0.10689700833282213,
+          "run_mae_gb": 0.20841003151063095
+        },
+        {
+          "config": {
+            "half_life_hours": null,
+            "learn_scale": true
+          },
+          "group_mae_gb": 0.4269779275755413,
+          "short_group_mae_gb": 0.23898571397622412,
+          "run_mae_gb": 0.3807617475057639
+        },
+        {
+          "config": {
+            "half_life_hours": 3.0,
+            "learn_scale": true
+          },
+          "group_mae_gb": 0.20080590668263584,
+          "short_group_mae_gb": 0.08797481612359917,
+          "run_mae_gb": 0.1887466136916108
+        },
+        {
+          "config": {
+            "half_life_hours": 6.0,
+            "learn_scale": true
+          },
+          "group_mae_gb": 0.16052258311699946,
+          "short_group_mae_gb": 0.0884809319167877,
+          "run_mae_gb": 0.15049966741749066
+        },
+        {
+          "config": {
+            "half_life_hours": 12.0,
+            "learn_scale": true
+          },
+          "group_mae_gb": 0.18561493990022088,
+          "short_group_mae_gb": 0.07636115434556309,
+          "run_mae_gb": 0.16172937324388675
+        },
+        {
+          "config": {
+            "half_life_hours": 24.0,
+            "learn_scale": true
+          },
+          "group_mae_gb": 0.2594915707254423,
+          "short_group_mae_gb": 0.1041494759295852,
+          "run_mae_gb": 0.2148501108828723
+        }
+      ],
+      "calibration_metrics_same_rows": {
+        "candidate": {
+          "mae_gb": 0.29813839595779246,
+          "group_mae_gb": 0.3304959841818116,
+          "short_mae_gb": 0.20544735610844572
+        },
+        "cumulative": {
+          "mae_gb": 0.37439142128125,
+          "group_mae_gb": 0.5268237628592592,
+          "short_mae_gb": 0.13369536822222228
+        },
+        "previous_candidate": {
+          "mae_gb": 0.43826194745181773,
+          "group_mae_gb": 0.2600621521811385,
+          "short_mae_gb": 0.6561988068179457
+        }
+      }
+    },
+    {
+      "horizon_minutes": 60,
+      "chosen_config": {
+        "half_life_hours": 12.0,
+        "learn_scale": true
+      },
+      "fitted_scale": 1.1875058296745566,
+      "fit_rows": 134,
+      "calibration_rows": 33,
+      "fit_groups": 57,
+      "calibration_groups": 19,
+      "selection_scores": [
+        {
+          "config": {
+            "half_life_hours": null,
+            "learn_scale": false
+          },
+          "group_mae_gb": 0.5065037100649958,
+          "short_group_mae_gb": 0.059274976730952375,
+          "run_mae_gb": 0.35263309905970147
+        },
+        {
+          "config": {
+            "half_life_hours": 3.0,
+            "learn_scale": false
+          },
+          "group_mae_gb": 0.24960659891645742,
+          "short_group_mae_gb": 0.11861357549119152,
+          "run_mae_gb": 0.24032895758320322
+        },
+        {
+          "config": {
+            "half_life_hours": 6.0,
+            "learn_scale": false
+          },
+          "group_mae_gb": 0.19934832533394745,
+          "short_group_mae_gb": 0.0893365707372481,
+          "run_mae_gb": 0.19017370204682837
+        },
+        {
+          "config": {
+            "half_life_hours": 12.0,
+            "learn_scale": false
+          },
+          "group_mae_gb": 0.18836575365564676,
+          "short_group_mae_gb": 0.07277988568946324,
+          "run_mae_gb": 0.16878985795404805
+        },
+        {
+          "config": {
+            "half_life_hours": 24.0,
+            "learn_scale": false
+          },
+          "group_mae_gb": 0.24506090043885925,
+          "short_group_mae_gb": 0.06602117634433796,
+          "run_mae_gb": 0.19485494708023776
+        },
+        {
+          "config": {
+            "half_life_hours": null,
+            "learn_scale": true
+          },
+          "group_mae_gb": 0.35886633590282846,
+          "short_group_mae_gb": 0.23105673773770702,
+          "run_mae_gb": 0.3434403855324167
+        },
+        {
+          "config": {
+            "half_life_hours": 3.0,
+            "learn_scale": true
+          },
+          "group_mae_gb": 0.16912998792459563,
+          "short_group_mae_gb": 0.08883008826488539,
+          "run_mae_gb": 0.16148111890315636
+        },
+        {
+          "config": {
+            "half_life_hours": 6.0,
+            "learn_scale": true
+          },
+          "group_mae_gb": 0.14830457793854981,
+          "short_group_mae_gb": 0.06573716288792071,
+          "run_mae_gb": 0.1366242767667301
+        },
+        {
+          "config": {
+            "half_life_hours": 12.0,
+            "learn_scale": true
+          },
+          "group_mae_gb": 0.1853695548557881,
+          "short_group_mae_gb": 0.05273538946706286,
+          "run_mae_gb": 0.15541157728135915
+        },
+        {
+          "config": {
+            "half_life_hours": 24.0,
+            "learn_scale": true
+          },
+          "group_mae_gb": 0.27203410002794604,
+          "short_group_mae_gb": 0.09268817686355754,
+          "run_mae_gb": 0.22193496305976299
+        }
+      ],
+      "calibration_metrics_same_rows": {
+        "candidate": {
+          "mae_gb": 0.25853298374104594,
+          "group_mae_gb": 0.33685454323043695,
+          "short_mae_gb": 0.10128759063595395
+        },
+        "cumulative": {
+          "mae_gb": 0.3710310533333334,
+          "group_mae_gb": 0.5374173302508772,
+          "short_mae_gb": 0.10847385677777781
+        },
+        "previous_candidate": {
+          "mae_gb": 0.3266521288457511,
+          "group_mae_gb": 0.26634944563855484,
+          "short_mae_gb": 0.4740506905593727
+        }
+      }
+    },
+    {
+      "horizon_minutes": 120,
+      "chosen_config": {
+        "half_life_hours": 12.0,
+        "learn_scale": true
+      },
+      "fitted_scale": 1.1360988837770452,
+      "fit_rows": 134,
+      "calibration_rows": 33,
+      "fit_groups": 58,
+      "calibration_groups": 19,
+      "selection_scores": [
+        {
+          "config": {
+            "half_life_hours": null,
+            "learn_scale": false
+          },
+          "group_mae_gb": 0.6541700799135675,
+          "short_group_mae_gb": 0.03525847546583335,
+          "run_mae_gb": 0.42106230399626865
+        },
+        {
+          "config": {
+            "half_life_hours": 3.0,
+            "learn_scale": false
+          },
+          "group_mae_gb": 0.29690430077825486,
+          "short_group_mae_gb": 0.06933107730323396,
+          "run_mae_gb": 0.23521271105739258
+        },
+        {
+          "config": {
+            "half_life_hours": 6.0,
+            "learn_scale": false
+          },
+          "group_mae_gb": 0.23838814010514744,
+          "short_group_mae_gb": 0.05129860613403855,
+          "run_mae_gb": 0.18568509022056465
+        },
+        {
+          "config": {
+            "half_life_hours": 12.0,
+            "learn_scale": false
+          },
+          "group_mae_gb": 0.21732799813241652,
+          "short_group_mae_gb": 0.04304608051353396,
+          "run_mae_gb": 0.16520210057364013
+        },
+        {
+          "config": {
+            "half_life_hours": 24.0,
+            "learn_scale": false
+          },
+          "group_mae_gb": 0.24915810424758672,
+          "short_group_mae_gb": 0.039224938735146125,
+          "run_mae_gb": 0.18918145730433622
+        },
+        {
+          "config": {
+            "half_life_hours": null,
+            "learn_scale": true
+          },
+          "group_mae_gb": 0.42868860996127656,
+          "short_group_mae_gb": 0.1378632720149504,
+          "run_mae_gb": 0.34859137707121823
+        },
+        {
+          "config": {
+            "half_life_hours": 3.0,
+            "learn_scale": true
+          },
+          "group_mae_gb": 0.213655056684694,
+          "short_group_mae_gb": 0.07677591671537286,
+          "run_mae_gb": 0.1622321857268742
+        },
+        {
+          "config": {
+            "half_life_hours": 6.0,
+            "learn_scale": true
+          },
+          "group_mae_gb": 0.21500709450391414,
+          "short_group_mae_gb": 0.05814660830822762,
+          "run_mae_gb": 0.15679086235285036
+        },
+        {
+          "config": {
+            "half_life_hours": 12.0,
+            "learn_scale": true
+          },
+          "group_mae_gb": 0.24033242435741095,
+          "short_group_mae_gb": 0.036353927829245944,
+          "run_mae_gb": 0.1749874738979789
+        },
+        {
+          "config": {
+            "half_life_hours": 24.0,
+            "learn_scale": true
+          },
+          "group_mae_gb": 0.32280950360906213,
+          "short_group_mae_gb": 0.03861410526826463,
+          "run_mae_gb": 0.23548069051284856
+        }
+      ],
+      "calibration_metrics_same_rows": {
+        "candidate": {
+          "mae_gb": 0.23636391603937365,
+          "group_mae_gb": 0.32717284906627425,
+          "short_mae_gb": 0.07619229756162577
+        },
+        "cumulative": {
+          "mae_gb": 0.35069095783333337,
+          "group_mae_gb": 0.5319240940622807,
+          "short_mae_gb": 0.08247653558333339
+        },
+        "previous_candidate": {
+          "mae_gb": 0.38653378798339094,
+          "group_mae_gb": 0.24259144845545808,
+          "short_mae_gb": 0.589270793598153
+        }
+      }
+    }
+  ],
+  "runtime_predictions_verified": 98,
+  "non_minion_rows_excluded": 115,
+  "models": {
+    "calibrated_yield_30min.joblib": "bda9ca5e17b48bf3aeccd712c611e890abf9befeffd745c37bd5421d0dc6f526",
+    "calibrated_yield_60min.joblib": "5a31f33b0e94762e3ea5b395cba4815a6cdd55f08dfcc702a1ff3160ead53cf0",
+    "calibrated_yield_120min.joblib": "b03db53063c4e816eb60c12c8151d8045a38c2194e382b7be32e05449da44400"
+  },
+  "plan_sha256": "28d647740d36c85aa63a0bdbec24f44a8a22ac28d1f770b25c957bdb6a19e197",
+  "baseline_provenance": "Original MinION development rows, original related-group split; constants fit only on fitting rows",
+  "calibration_selection_used": false,
+  "legacy_bundled_artifacts_unchanged": true,
+  "software_checks": {
+    "source_suite": "99 tests passed",
+    "extracted_transfer_suite": "43 tests passed",
+    "extracted_candidate_freeze": "verified model hashes, embedded comparator provenance, 40 recorded audit features and duration dependence"
+  },
+  "limitations": [
+    "Calibration rows were excluded from model fitting and selection but belong to previously inspected development data.",
+    "Missing/inconsistent required duration/counters exclude rows: the comparison uses the same 32/33/33 calibration rows for all models.",
+    "Run-weighted calibration MAE improves over previous candidates at all checkpoints, but related-group-weighted MAE is worse at all checkpoints.",
+    "Cumulative extrapolation has lower short-run calibration MAE at 30 minutes; short-run means planned duration <=6h.",
+    "Two known live runs influenced design and were evaluated post hoc, never used for parameter fitting. Their improved diagnostic forecasts are not independent validation.",
+    "No automatic promotion to package defaults or update on the sequencing machine."
+  ],
+  "source_sha256": {
+    "src/nanopredict/duration_model.py": "3db059a7bb05ad0913f2bd6362549a49509a203c8d1d204fcee7f5b8653a45bc",
+    "src/nanopredict/study.py": "6781188b7ca46f1dd6e476cc2d06ad50e41e7f354315fce92a1ec983e833fc0a",
+    "src/nanopredict/diagnose_run.py": "739043b9e2ea3c3f99570fb59fe18a949f96412dadf3e35ffb827ccdfd884095",
+    "tools/paper/train_duration.py": "c7d66c2264e667a8457526d2bc8ff073df072dd9e2a2cb67f82f273adc387e76",
+    "tools/paper/train_minion.py": "105458fc01432097a025912fed2bef549e17c878591ddee3eb48b0e9699ee2b0"
+  }
+}

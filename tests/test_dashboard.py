@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import re
 import unittest
 from html.parser import HTMLParser
@@ -87,7 +88,8 @@ class ReplaySessionTests(unittest.TestCase):
         cls.session = ReplaySession(ReplayCatalog(replay_features()), engine)
 
     def test_all_checkpoints_produce_calibrated_assessments(self):
-        status = self.session.start("Sample1", target_gb=10, seconds_per_step=120)
+        # Sample1 has no passed-base counters; Sample2 has all required inputs.
+        status = self.session.start("Sample2", target_gb=10, seconds_per_step=120)
         self.assertEqual(status["state"], "running")
         self.assertIsNone(status["assessment"])
         for expected_horizon in (30, 60, 120):
@@ -100,6 +102,30 @@ class ReplaySessionTests(unittest.TestCase):
             self.assertIn("90", assessment["prediction"]["prediction_intervals"])
         self.assertEqual(status["state"], "complete")
         self.assertIsNotNone(status["actual_final_gb"])
+
+    def test_missing_duration_keeps_replay_observations_without_forecast(self):
+        sample = next(run.sample_id for run in self.session.catalog.runs.values()
+                      if all(not row.get("planned_run_limit_hours") for row in run.snapshots))
+        self.session.start(sample, target_gb=10, seconds_per_step=120)
+        for horizon in (30, 60, 120):
+            status = self.session.advance()
+            self.assertEqual(status["current_horizon_minutes"], horizon)
+            self.assertIsNone(status["assessment"])
+            self.assertFalse(status["prediction_available"])
+            self.assertIn("planned duration", status["prediction_unavailable_reason"])
+            self.assertIsNotNone(status["observations"])
+            json.dumps(status, allow_nan=False)
+        self.assertEqual(status["state"], "complete")
+        self.assertIsNotNone(status["actual_final_gb"])
+        self.assertEqual(status["history"], [])
+
+    def test_missing_passed_counter_does_not_invent_forecast(self):
+        self.session.start("Sample1", target_gb=10, seconds_per_step=120)
+        status = self.session.advance()
+        self.assertFalse(status["prediction_available"])
+        self.assertIsNone(status["assessment"])
+        self.assertIsNone(status["observations"]["passed_yield_gb"])
+        self.assertEqual(status["current_horizon_minutes"], 30)
 
     def test_invalid_target_is_rejected(self):
         with self.assertRaisesRegex(ValueError, "positive"):

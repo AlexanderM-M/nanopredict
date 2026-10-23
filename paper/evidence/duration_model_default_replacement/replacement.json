@@ -1,0 +1,18 @@
+{
+  "date": "2026-10-22",
+  "package_version": "0.11.0",
+  "model_name": "minion_duration_extrapolation",
+  "authorization": "User requested replacement of the default model",
+  "previous_models": {
+    "calibrated_yield_30min.joblib": "0c052d456da3165ebf1dfd98fd97c98a396063e0c88a32a10fa1399aa3101321",
+    "calibrated_yield_60min.joblib": "f4b991faf08c73224069edbb10522d07100334c9441ea2dae410910964a540ac",
+    "calibrated_yield_120min.joblib": "99112b37596bc5a913a1ec12dd542af0f3e00fec78eb699352e0cb8d0451802f"
+  },
+  "replacement_models": {
+    "calibrated_yield_30min.joblib": "bda9ca5e17b48bf3aeccd712c611e890abf9befeffd745c37bd5421d0dc6f526",
+    "calibrated_yield_60min.joblib": "5a31f33b0e94762e3ea5b395cba4815a6cdd55f08dfcc702a1ff3160ead53cf0",
+    "calibrated_yield_120min.joblib": "b03db53063c4e816eb60c12c8151d8045a38c2194e382b7be32e05449da44400"
+  },
+  "development_manifest_sha256": "23abaa4d9ee69f0423ee71d81e4345ad8e1e3507a8185852d7f61ffb080f48cb",
+  "independently_validated": false
+}

@@ -1,0 +1,12 @@
+{
+  "package_version": "0.11.0",
+  "replay_snapshots": {
+    "forecast": 480,
+    "unavailable": 33
+  },
+  "model_names": {
+    "120": "minion_duration_extrapolation",
+    "30": "minion_duration_extrapolation",
+    "60": "minion_duration_extrapolation"
+  }
+}

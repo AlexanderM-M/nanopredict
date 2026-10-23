@@ -1,0 +1,10 @@
+{
+  "interpretation": "Two related technical runs; new-model predictions post hoc, not independent validation",
+  "matplotlib_version": "3.9.4",
+  "data_sha256": "2ed178da744b649acb03c177c0726151318acdd0033e77be758b655b9644567e",
+  "renderer_sha256": "e645a884afcff0735f78bc2ece34afad17e4e9e6d653eebdd738f8086aa8d78f",
+  "figure_sha256": {
+    "figure1.pdf": "01326a89197915e6929ebcf3a222d760961887a855f52cb845b957b06af98d4b",
+    "figure1.png": "d5569e4acff80f4a1b7621b39b716a30205a94823a7c92d9248e7ced4cd7c59f"
+  }
+}

@@ -13,6 +13,9 @@ included.
 
 ## Install from PyPI
 
+The duration-aware 0.11.0 update is available from the GitHub `main` branch.
+It has not been published to PyPI; use the clone instructions below for this version.
+
 Requirements: MinKNOW and 64-bit Python 3.9–3.12 on the sequencing computer.
 MinION, MinION Mk1C/Mk1D, PromethION, P2 Solo, and P2 Integrated positions are
 detected automatically.
@@ -161,15 +164,12 @@ For `PROMETHION`, `P2_SOLO`, and `P2_INTEGRATED` positions, Nanopredict displays
 live passed bases, operator-defined target progress, recent yield rate, target
 ETA, and completed-BAM monitoring. The calibrated final-
 yield card is deliberately disabled: PromethION forecasting has not been
-independently validated. The bundled artifact metadata contain both MinION and
-PromethION calibration groups and report 198, 213, and 243 training samples at
-30, 60, and 120 minutes. The 171 MinION histories describe the replay subset.
-The original training collection and scripts have now been recovered locally;
-see the [provenance review](paper/evidence/training_provenance_recovery.json).
-New [MinION-only candidates](paper/README.md#minion-only-candidate-training--16-october-2026)
-have been trained and staged separately for qualification and evaluation.
-They do not yet replace the bundled models. Monitoring support does not
-establish forecast validity.
+independently validated. Version 0.11.0 bundles the MinION-only duration-aware
+models developed on 22 October 2026. Earlier mixed-device model results remain
+historical evidence; they do not describe the replacement models. See the
+[replacement record](paper/evidence/duration_model_default_replacement/replacement.json)
+and [development results](paper/evidence/duration_model_development/summary.json).
+Monitoring support does not establish forecast validity.
 
 ### Live problem detection
 
@@ -197,7 +197,8 @@ Nanopredict chooses the best available read-only path automatically:
   completed `bam_pass` and `bam_fail` batches and continues to display passed
   bases, target progress, and yield ETA. A calibrated
   final-yield prediction is not shown in this mode because the trained model
-  requires statistics that cannot be reconstructed reliably from BAM alone.
+  requires a reliable planned duration and aligned cumulative counters, which
+  this fallback does not supply.
 
 The default BAM locations are detected automatically (`C:\data` on Windows and
 `/data` or `~/data` on Linux). If MinKNOW writes elsewhere, supply the directory
@@ -237,6 +238,48 @@ nanopredict --foreground --no-browser
 
 The server uses Python's standard HTTP library and no external web framework.
 Models and all dashboard assets are installed inside the Python package.
+
+### Default duration-aware models (0.11.0)
+
+The 22 October development revision predicts accumulated passed yield plus
+production during the remaining configured time. It uses cumulative passed
+bases, observation time and planned duration; sampling resolution, recent-rate
+missingness and window-local QC values do not enter the model. Missing duration
+or invalid counters make the forecast unavailable rather than inventing a run
+length. Historical replays with missing duration still show observations and
+final yield, with the forecast marked unavailable. A development-selected decay
+and rate multiplier can adjust extrapolation.
+These assumptions do not predict future interruptions or operator stopping.
+
+The duration-aware artifacts are now the bundled defaults at all three
+checkpoints (30, 60 and 120 minutes). A configured three-hour run therefore
+produces a forecast for the end of those three hours. Target probabilities use
+that same forecast endpoint and historical calibration residuals. Neither uses
+an assumed 72-hour duration. Forecasts remain checkpoint snapshots.
+
+Update the whole package: the serialized estimator requires
+`nanopredict.duration_model`. Remove any old `NANOPREDICT_MODELS_DIR` override
+from your launcher to use the bundled defaults. A new recorder uses the bundled
+models automatically; `--models-dir` remains available for explicit selection.
+
+```bash
+python -m nanopredict start --source minknow --foreground --no-browser
+python -m nanopredict.study init --study /new/qualification/recorder \
+  --protocol /path/to/protocol.txt --qualification --predictions-visible
+```
+
+Use `--predictions-visible` when a dashboard may expose forecasts. Model files
+are validated, copied and hashed before new collection; old freezes must stay
+unchanged. The recorder retains the broader feature audit and recent-rate
+comparator even though these inputs are excluded from the model.
+The bundled artifacts carry their fitting-only comparator constants and separate
+development-calibration residuals into the freeze.
+
+Training uses `tools/paper/train_duration.py` with the original feature table,
+membership record and `--previous-development` directory. Its grouped selection
+and calibration partitions stay separate. Development and post-hoc diagnostic
+results do not establish independent accuracy; simple extrapolation remains a
+required comparator, especially for short runs.
 
 ## Model provenance and paper preparation
 

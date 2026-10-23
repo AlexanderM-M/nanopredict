@@ -327,6 +327,28 @@ class LiveCollectorTests(unittest.TestCase):
         self.assertTrue(reached["live_progress"]["target_reached"])
         self.assertEqual(reached["live_progress"]["remaining_bases"], 0)
 
+    def test_missing_duration_preserves_live_yield_and_recovers(self):
+        acquisition = self.connection.current_acquisition
+        acquisition.ClearField("target_run_until_criteria")
+        engine = RunDecisionEngine(
+            CalibratedYieldPredictor(models_dir()), diagnostic_reference()
+        )
+        monitor = LiveMonitor(self.collector, engine, start_thread=False)
+        monitor.poll_once()
+        status = monitor.status()
+        self.assertEqual(status["state"], "running")
+        self.assertIsNone(status["assessment"])
+        self.assertFalse(status["prediction_available"])
+        self.assertIn("planned duration", status["prediction_unavailable_reason"])
+        self.assertEqual(status["live_progress"]["passed_bases"], 900_000_000)
+        acquisition.target_run_until_criteria.CopyFrom(fake_run().target_run_until_criteria)
+        monitor.poll_once()
+        recovered = monitor.status()
+        self.assertTrue(recovered["prediction_available"])
+        self.assertEqual(recovered["assessment"]["prediction"]["model"],
+                         "minion_duration_extrapolation")
+        monitor.close()
+
     def test_live_monitor_supervises_and_selects_multiple_positions(self):
         engine = RunDecisionEngine(
             CalibratedYieldPredictor(models_dir()), diagnostic_reference()

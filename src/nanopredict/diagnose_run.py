@@ -114,7 +114,7 @@ class RunDecisionEngine:
             status = "GOOD"
             confidence = "high"
             explanation = "The complete 90% prediction interval is above the target."
-        elif interval_90["upper_gb"] < target_gb:
+        elif interval_90["upper_gb"] is not None and interval_90["upper_gb"] < target_gb:
             status = "BAD"
             confidence = "high"
             explanation = "The complete 90% prediction interval is below the target."

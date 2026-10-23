@@ -1,0 +1,103 @@
+{
+  "scope": "Manuscript evidence audit: no fitting or new evaluation cohort",
+  "model_version": "0.11.0",
+  "model_sha256": {
+    "calibrated_yield_30min.joblib": "bda9ca5e17b48bf3aeccd712c611e890abf9befeffd745c37bd5421d0dc6f526",
+    "calibrated_yield_60min.joblib": "5a31f33b0e94762e3ea5b395cba4815a6cdd55f08dfcc702a1ff3160ead53cf0",
+    "calibrated_yield_120min.joblib": "b03db53063c4e816eb60c12c8151d8045a38c2194e382b7be32e05449da44400"
+  },
+  "availability": [
+    {
+      "checkpoint_minutes": 30,
+      "partition": "fit",
+      "total_rows": 141,
+      "eligible_rows": 133,
+      "excluded_rows": 8,
+      "eligible_groups": 56
+    },
+    {
+      "checkpoint_minutes": 30,
+      "partition": "calibration",
+      "total_rows": 35,
+      "eligible_rows": 32,
+      "excluded_rows": 3,
+      "eligible_groups": 18
+    },
+    {
+      "checkpoint_minutes": 60,
+      "partition": "fit",
+      "total_rows": 144,
+      "eligible_rows": 134,
+      "excluded_rows": 10,
+      "eligible_groups": 57
+    },
+    {
+      "checkpoint_minutes": 60,
+      "partition": "calibration",
+      "total_rows": 37,
+      "eligible_rows": 33,
+      "excluded_rows": 4,
+      "eligible_groups": 19
+    },
+    {
+      "checkpoint_minutes": 120,
+      "partition": "fit",
+      "total_rows": 145,
+      "eligible_rows": 134,
+      "excluded_rows": 11,
+      "eligible_groups": 58
+    },
+    {
+      "checkpoint_minutes": 120,
+      "partition": "calibration",
+      "total_rows": 37,
+      "eligible_rows": 33,
+      "excluded_rows": 4,
+      "eligible_groups": 19
+    }
+  ],
+  "calibration_metrics_recomputed": true,
+  "saved_runtime_checks": 98,
+  "interval_log_radii": {
+    "30": {
+      "80": 0.4106956111338461,
+      "90": 0.850147650942976,
+      "95": "unbounded"
+    },
+    "60": {
+      "80": 0.30054378070287674,
+      "90": 0.44728509561652896,
+      "95": 1.0914544297442046
+    },
+    "120": {
+      "80": 0.20949171081852835,
+      "90": 0.3531822984394574,
+      "95": 1.166965375648932
+    }
+  },
+  "source_sha256": {
+    "paper/archive/duration-model-development-20261022/manifest.json": "23abaa4d9ee69f0423ee71d81e4345ad8e1e3507a8185852d7f61ffb080f48cb",
+    "paper/archive/duration-model-development-20261022/calibration_predictions.csv": "681748f0c1189d804b2dcaa4d9cefab724b4d0f6d2ad886d8e8ee124acc30681",
+    "paper/archive/duration-model-development-20261022/availability.csv": "7b5a4a42df0034b63d5666f71a9f4c9663e4a7457ebb4c55bdfa633eb93dd408",
+    "paper/archive/duration-model-development-20261022/posthoc_live_diagnostics.csv": "73e302ee00c09f232f7abe0a4af976e95164078b714d4a2a53f025a1ac87b50c",
+    "paper/archive/qualification-20261020-review/review.json": "781e5c942528f1374a7440fa45606df4335570932510e57c568c444220802a0a",
+    "paper/archive/candidate-qualification-20261022-review/review.json": "94836cf2d24ffcf8fe26d73c21711dd5d61114c6e0324cce049deb6c0dea62c5",
+    "paper/archive/candidate-qualification-20261022-diagnosis/diagnosis.json": "291bca406c35d3921a9bd497f3ab56c40d365fcc254c289cd40fc2ecd26dd00a"
+  },
+  "short_subset_counts": {
+    "30": {
+      "acquisitions": 18,
+      "groups": 9
+    },
+    "60": {
+      "acquisitions": 18,
+      "groups": 9
+    },
+    "120": {
+      "acquisitions": 18,
+      "groups": 9
+    }
+  },
+  "short_metrics_recomputed": true,
+  "figure_predictions_and_recorded_values_verified": true
+}

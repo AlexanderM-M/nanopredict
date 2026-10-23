@@ -1,0 +1,13 @@
+{
+  "full_suite_tests_passed": 103,
+  "portable_tests_passed": 59,
+  "replay_snapshots_checked": 513,
+  "replay_forecasts": 480,
+  "replay_unavailable_missing_inputs": 33,
+  "dependency_check": "No broken requirements found",
+  "transfer_zip": "paper/archive/duration-default-transfer-20261022/nanopredict-duration-default-20261022.zip",
+  "transfer_sha256": "de5c9a48ba7b77f8f1087d0084057e8536893672623262824289ec7a26fa0772",
+  "previous_models_backup": "paper/archive/model-default-replacement-20261022/previous-models",
+  "sequencing_machine_updated": false,
+  "hardware_validation": "Pending next MinION qualification run"
+}

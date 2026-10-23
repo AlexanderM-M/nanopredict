@@ -1,148 +1,63 @@
-# Nanopredict Application Note preparation
+# NanoPredict manuscript and supporting evidence
 
-**Public package cleanup (16 October 2026):** The distribution now contains yield forecasting and monitoring only. Barcode counting accepts ordinary unaligned BAMs. The current source suite has 90 passing tests and the fresh installed wheel passes nine dashboard tests; see [verification](evidence/public_package_cleanup/verification.json). Earlier test counts describe historical source snapshots. Existing model artifacts are unchanged. Source changes require a new recorder freeze for future qualification; preserved frozen studies retain their original source.
+Current revision: 23 October 2026, version 0.11.0 duration-aware models, targeting a Bioinformatics Advances Application Note.
 
-## MinION-only candidate training — 16 October 2026
+## Manuscript and reproducible evidence
 
-The [candidate record](evidence/minion_model_development/summary.json) documents new models trained exclusively on the recovered MinION development collection: 183 acquisitions, 539 checkpoint rows and 86 connected groups defined by recorded sample labels or shared flowcells. All 115 PromethION checkpoint rows were excluded. A fixed seed reserved 22 groups (37 acquisitions) for development calibration; the other 64 groups (146 acquisitions) supplied fitting and five-fold grouped model selection. Checkpoint availability reduces the counts at some horizons. [Integrity checks](evidence/minion_model_development/integrity_checks.json) found no recorded sample, flowcell, protocol or acquisition overlap between fitting and calibration. Unrecorded biological relationships remain unresolved.
+- [Current manuscript source](manuscript.md).
+- [Supplementary Methods and Results](supplementary_methods.md).
+- [Figure 1 vector PDF](evidence/manuscript_20261023/figure1.pdf), [600-dpi PNG](evidence/manuscript_20261023/figure1.png) and [exact data](evidence/manuscript_20261023/figure1_data.csv).
+- [Supplementary Historical Results](historical_model_results.md), preserving earlier legacy-model analyses.
+- [Author completion and evidence map](readiness.md) and [journal requirements](journal_requirements.md).
 
-| Checkpoint | Selected model | Fitting runs | Calibration runs |
-| --- | --- | ---: | ---: |
-| 30 min | Ridge on log1p final yield, alpha 10 | 141 | 35 |
-| 60 min | 600 extra trees, minimum leaf size 3 | 144 | 37 |
-| 120 min | Ridge on log1p final yield, alpha 10 | 145 | 37 |
+The manuscript remains an author draft. Affiliations, correspondence, contributions,
+funding and final ethics/data-access wording require author completion. Generated
+Word documents, the supplied journal template, author-completion notes and review
+ZIP files are local author materials and are not included in Git. Earlier local
+Word copies have been preserved. No journal submission has been performed.
 
-Selection minimized mean within-group MAE across fitting-only folds. Each fold fitted its own median imputer with missingness indicators and, for ridge, standardization. Predictions are floored at passed yield already observed. Separate calibration groups supply maximum absolute log1p residuals per group for interval order statistics; empirical threshold probabilities weight each group equally. These probabilities have not been independently validated. The random calibration partition is drawn from previously inspected development data; it is not a new independent test cohort. Selected-model cross-validation scores are also model-selection results, not unbiased estimates of final performance. Calibration MAE was 0.482/0.574/0.587 Gb at 30/60/120 minutes, so improved independent accuracy cannot be assumed from the fitting-fold comparisons.
+## What the paper reports
 
-Candidate artifacts, the prespecified training plan, private split manifest and preserved source files are in ignored `paper/archive/minion-model-development-20261016/`. All 109 calibration predictions matched after loading through the runtime predictor. All 107 automated tests pass. Bundled production models and the manuscript's existing retrospective results remain unchanged; the new candidates are frozen for technical qualification and subsequent evaluation, not promoted as validated replacements. No newly uploaded run was added to development.
+The new defaults use cumulative passed bases, observed seconds and configured duration, with fitting-only selection of decay and scale. The original MinION group partition is retained. Required-input eligibility leaves 133/32, 134/33 and 134/33 fitting/calibration acquisitions at 30/60/120 minutes. Run-weighted calibration MAE improves over the previous model on common rows, but group-weighted MAE is worse. Simple extrapolation remains a required comparator.
 
-Reproduction uses a new output directory and the original private inputs:
+Two live technical runs used earlier models, shared a flowcell and informed the revision. Applying the new model to their recorded inputs is post-hoc diagnostic work. It is not independent validation or prospective testing of version 0.11.0. The scientific text explicitly retains unfavorable comparisons and the distinction between planned-duration forecasts and observed-ending development outcomes.
 
-```bash
-python tools/paper/train_minion.py \
-  --features /path/to/recovered/report_features.csv \
-  --membership archive/training-provenance-20261016/private_membership.json \
-  --output paper/archive/minion-model-development-repeat
-```
+The [current audit](evidence/manuscript_20261023/evidence_audit.json), [common-row metrics](evidence/manuscript_20261023/development_metrics.csv) and [replacement verification](evidence/duration_model_default_replacement/verification.json) support the reported claims. The 103 source tests and 59 portable tests refer to the replacement snapshot. No model was refitted during manuscript revision.
 
-For local technical qualification, the updated runtime can load the staged models using `NANOPREDICT_MODELS_DIR=paper/archive/minion-model-development-20261016/models`. The candidate artifacts require this runtime's device restriction, observed-yield floor and weighted-residual handling. Older installations must be updated before loading them. Training and qualification do not establish live/historical feature equivalence; that remains the next evidence requirement before independent evaluation.
+## Reproduce the current author files
 
-**Early-model investigation completed:** The [development-only diagnosis](evidence/early_model_diagnosis/summary.json) reproduces the original data and fits, and finds that device pooling, raw-yield ridge behavior and weak grouping warrant a separate replacement-development phase. MinION-specific/log-target/tree ablations improve development errors, but extrapolation still wins in the three-hour 60-minute subset. Existing models remain unchanged; no new evaluation cases were used for these experiments.
-
-**16 October 2026 provenance correction:** Original training scripts, tables and reports were recovered locally, and all three original model files match the bundled artifacts byte-for-byte. Matching protocol and acquisition IDs establish that 14/20 retrospective runs contributed to every deployed model; S9 additionally shares a training flow cell. The 20-run results are not independent validation. See [the recovery record](evidence/training_provenance_recovery.json). Earlier statements below that these materials were unavailable describe the prior search and are superseded.
-
-The [current dataset screen](evidence/current_dataset_eligibility.csv) identifies S1, S2, S3, S4 and S10 as having no recorded training acquisition/protocol/flowcell match; they form four flowcell groups because S1 and S3 share a cell. All five were already inspected and remain a post hoc retrospective subset pending biological relationship review, not a newly reserved test set. The [training-method review](evidence/training_method_review.json) records reused flowcells across original folds and the identity-first intake steps for additional uploads. No new uploaded cases have been scored or assigned to training.
-
-The subsequent [S21–S30 identity screen](evidence/s21_s30_intake.json) found that all ten uploads match original training acquisitions, with matching protocol IDs and consistent final-summary linkage. S29 also duplicates S15; S21 and S22 share a flowcell. No new independent evaluation candidates were identified, and no new outcomes or predictions were examined. A private 244-run identity lookup is available under `archive/intake-s21-s30-20261016/training_run_lookup.csv` to screen candidate reports before transferring BAMs.
-
-**Replacement-upload update:** S25–S30 were subsequently replaced. The [versioned replacement screen](evidence/s25_s30_replacement_intake.json) supersedes the earlier identity findings for those six folder labels: no current acquisition matches training; current S25 repeats S4; current S30 shares a training flowcell. Current S26–S29 are four new acquisitions without a training flowcell match, but share three flowcell groups with previously scored non-training cases. They are candidates for a grouped retrospective assessment, not a new group-independent confirmatory cohort. Original upload records and replacement report snapshots are preserved separately; no new yields or predictions were analysed.
-
-**Subsequent authorised assessment:** After the investigator confirmed complete-run exports and requested continuation, the [replacement assessment](evidence/replacement_assessment/summary.json) scored S26–S29 descriptively (four acquisitions, three flowcell groups), with S30 separate and S25 excluded as a repeat of S4. All six report/summary endpoints reconciled exactly. Primary NanoPredict MAE was 0.313/0.137/0.009 Gb at 30/60/120 minutes versus 0.017/0.015/0.012 Gb for cumulative extrapolation. No model was changed. S29 contains 36 foreign BAM files; scoring used its reconciled whole-run report/summary, not BAM subtotals. This is not a fresh group-independent confirmatory cohort or live validation.
-
-This branch prepares Nanopredict for a Bioinformatics Advances Application Note. It contains a verified repository audit, reproducible exploratory retraining, validation procedures and a draft with evidence placeholders. It includes a completed, limited retrospective report-reconstruction analysis; it does not establish prospective forecasting accuracy, interval calibration or real-device reliability.
-
-## Start here
-
-- [Repository and model audit](audit.md): available evidence, missing dependencies and corrected provenance.
-- [Feature definitions and timing](feature_audit.md): historical versus live inputs and unresolved parity checks.
-- [Benchmark methods](benchmark_methods.md): estimand, grouping, baselines, calibration and interpretation.
-- [Validation protocol](validation_protocol.md): prospective collection, barcode yield, restarts, latency and resources.
-- [Journal requirements](journal_requirements.md): Bioinformatics Advances selected on 16 October 2026; current Application Note requirements.
-- [Manuscript draft](manuscript.md): proposed title, structured abstract, main text and explicit missing evidence.
-- [Evidence inventory](evidence/inventory.json), [field audit](evidence/replay_fields.csv), and [exploratory results](evidence/exploratory/metadata.json).
-
-## Local material and machine qualification
-
-The paper focuses on yield forecasting and monitoring. Follow the [sequencing-machine handoff](machine_handoff.md) for non-study qualification with `study init --qualification`. This purpose is rejected by the independent evaluator. Qualification is not study enrollment or protocol approval.
-
-## New dataset intake
-
-The [15 October intake](evidence/dataset_intake.json) records four investigator-confirmed complete P2 Solo runs. Header inspection confirms distinct acquisitions; training overlap and related-material groups remain unresolved. These runs support assessment of PromethION monitoring, not the current MinION-only forecast evaluation. See [readiness](readiness.md) for the remaining data requirements.
-
-Reproduce the file/header-only intake with coded `SampleN` or `RunN` directories, writing a fresh output file:
+With Matplotlib 3.9.4 installed, render the figure from aggregate data:
 
 ```bash
-python tools/paper/inventory_datasets.py --data-root /path/to/coded_runs --output /path/to/new_intake.json --declared-distinct-runs --declared-device P2_SOLO --declared-complete-runs
+python tools/paper/render_duration_manuscript.py
 ```
 
-The declaration flags record the investigator's statements. They do not prove biological independence, complete export scope or platform qualification. The utility does not scan reads or calculate predictions/outcomes.
-
-## Expanded MinION cohort and retrospective extraction
-
-The [20-run intake](evidence/minion_cohort_20.json) supersedes the earlier seven-run intake for current cohort size. The [prepared retrospective plan](retrospective_plan.json) specifies the analysis and unresolved gates. These historical cases must not be imported as prospective recorder events.
+With Pandoc and lxml installed and an author-supplied Bioinformatics Advances
+Word template at `paper/bioadv-word-template.docx`, generate a local Word copy:
 
 ```bash
-.venv/bin/python tools/paper/extract_retrospective.py --data-root /path/to/datasets --output paper/archive/retrospective-new --declarations paper/evidence/retrospective_declarations.json
+python tools/paper/export_word.py --output paper/NanoPredict_manuscript_bioadv_20261023.docx
+pandoc paper/supplementary_methods.md --standalone --metadata=lang:en-GB \
+  --output paper/NanoPredict_supplementary_methods_20261023.docx
 ```
 
-Use an interpreter with the project dependencies installed; the output directory must be new. Outputs are candidate numerical inputs, a per-feature missingness/source audit, a coded cohort table and a hashed manifest. Temperature timing has been recovered from linked HTML/JSON reports, and all 20 final passed yields and read counts reconcile with sequencing summaries. Report/live window differences remain unresolved; numerical extraction is not a validated forecast result.
+These commands replace the named generated files; preserve author edits or choose a new output path. The main file retains the template's title/abstract block, two-column text, styles and headers, with a full-width table and figure. Final pagination must be inspected in Word after author completion; the four-page limit is not certified by XML inspection.
 
-## Completed retrospective reconstruction
+## Development and historical records
 
-The [execution record](evidence/retrospective/analysis_record.json), [aggregate metrics](evidence/retrospective/metrics.csv), [paired comparisons](evidence/retrospective/paired.csv) and [figure manifest/captions](evidence/retrospective/figure_manifest.json) document the separate analysis. Both full-cohort and prespecified configuration-error sensitivity results are reported; the sensitivity does not support a general advantage over extrapolation. The [manuscript](manuscript.md) contains the results and interpretation.
+The 22 October artifacts are documented in [the duration development summary](evidence/duration_model_development/summary.json). That record was written before promotion and retains its original status. The later [replacement record](evidence/duration_model_default_replacement/replacement.json) documents their adoption as defaults. The preceding [16 October MinION-only development](evidence/minion_model_development/summary.json) and [early-model diagnosis](evidence/early_model_diagnosis/summary.json) remain preserved. Historical summaries saying defaults were unchanged describe those earlier snapshots.
 
-Original execution commands (the inputs and full freeze remain private):
+Training reproduction with access-controlled inputs is specified in Supplementary Methods S7 and `tools/paper/train_duration.py`. Full model development requires the original feature table, relationship manifest and preceding plan; public aggregate results alone are not sufficient to recreate those inputs.
 
-```bash
-python tools/paper/evaluate_retrospective.py freeze --extraction paper/archive/retrospective-20-runs-v3 --outcomes paper/archive/yield-reconciliation-20-v1/manifest.json --plan paper/retrospective_plan.json --output paper/archive/retrospective-freeze-v1
-python tools/paper/evaluate_retrospective.py score --freeze paper/archive/retrospective-freeze-v1/freeze.json --output paper/archive/retrospective-results-v1
-python tools/paper/render_retrospective.py --results paper/archive/retrospective-results-v1 --output paper/evidence/retrospective
-```
+The original 20-run legacy reconstruction had 14 training-overlapping acquisitions. Later identity screens and replacement-upload comparisons are retained in the historical supplement and `evidence/`. They do not validate the new model. Frozen models, private inputs and original output tables have not been overwritten. The previous manuscript/readiness documents are preserved under `archive/manuscript-duration-alignment-20261023/`.
 
-Each output directory must be new. To reproduce the existing frozen analysis, use its preserved input files and a new scoring output directory; the scorer rejects changed input/source/model/environment hashes. The renderer requires Matplotlib 3.9.4 and reads saved results only. Raw-data re-extraction creates a new provenance record; its timestamps/hashes must be reviewed against the original specification rather than overwritten into the old freeze. Model refitting or recalibration would require a separately declared development phase and new reserved evaluation cases.
+Additional methodological records:
 
-## Prospective collection and independent validation
+- [Repository/model audit](audit.md) and [feature timing audit](feature_audit.md).
+- [Historical benchmark methods](benchmark_methods.md).
+- [Matched validation](matched_validation.md), [independent protocol](independent_protocol.md) and [operator instructions](operator_instructions.md).
+- [Machine handoff](machine_handoff.md) and [release checklist](release_checklist.md).
 
-Use the [frozen independent protocol](independent_protocol.md) and [exact operator instructions](operator_instructions.md). The new `python -m nanopredict.study` command records predictions without a dashboard, freezes model/preprocessing/calibration and comparator settings, retains pseudonymous checkpoint linkage, and accepts reconciled outcomes and end reasons. `tools/paper/evaluate_frozen.py` scores only stored forecasts and never fits or recalibrates on evaluation outcomes.
-
-See [matched validation](matched_validation.md) for executable live/historical feature and timing/resource comparisons , [readiness](readiness.md) for claim-specific missing evidence, and [release checklist](release_checklist.md) for the local archive. The manuscript remains **not submission-ready**.
-
-## Reproduce locally
-
-From the repository root, using Python 3.11:
-
-```bash
-python3.11 -m venv .venv
-.venv/bin/python -m pip install --editable .
-.venv/bin/python -m pip install -r paper/requirements.txt
-.venv/bin/python -m unittest discover -s tests -v
-.venv/bin/python tools/paper/audit.py --output paper/evidence
-.venv/bin/python tools/paper/benchmark.py --output paper/evidence/exploratory
-.venv/bin/python tools/paper/render.py --results paper/evidence/exploratory --output paper/evidence/exploratory/figures
-```
-
-`environment-freeze.txt` records the environment used here; `pyproject.toml` pins direct runtime dependencies. To recreate all installed versions, first install the freeze file and then install the checkout with `--editable . --no-deps`. Platform-specific wheels may differ. The benchmark records input and script hashes, versions, seed and group assignments. No original training artifact is modified. Checkpoints are evaluated separately. Reports and figures retain the exploratory label.
-
-For genuinely dated data with verified group relationships and feature timing, create a separate CSV in the replay feature schema plus a completed [split manifest](templates/split_manifest.csv):
-
-```bash
-.venv/bin/python tools/paper/benchmark.py --data /path/to/verified_features.csv --split-manifest /path/to/split_manifest.csv --output /path/to/heldout_results
-.venv/bin/python tools/paper/render.py --results /path/to/heldout_results --output /path/to/heldout_figures
-```
-
-The held-out mode retrains models. It does not certify the data's provenance or evaluate a frozen deployed artifact. It rejects known replay feature rows even after relabelling/reordering and requires chronology, outcome availability dates, group separation and a timing-verification assertion. Do not fill missing dates with labels, file mtimes or model metadata. No valid split manifest is provided because those facts are unavailable.
-
-## Evidence still needed
-
-Original training scripts, source exports, sample/run membership and historical benchmark CSVs have now been recovered and preserved under ignored `archive/training-provenance-20261016/`. Biological relatedness remains unverified. Fourteen of the 20 retrospective cases overlap training; these results cannot support independent validation. Recovery alone does not require retraining: first verify source extraction and related groups, then choose whether to retain or revise the models before reserving a new evaluation cohort. Collect paired live/historical features and independent run outcomes, real barcode-yield/restart fixtures and timed resource traces. The suggested 20–30-run consecutive prospective pilot is a feasibility plan, not a journal minimum or proof of calibration.
-
-Local commits and a preparation archive preserve the reviewed work. Publication, archival deposit, submission and pushing require separate instruction.
-
-## Word manuscript using the journal template
-
-Use [NanoPredict_manuscript_bioadv.docx](NanoPredict_manuscript_bioadv.docx) for
-author revision. It is generated from `manuscript.md` using the supplied
-[bioadv-word-template.docx](bioadv-word-template.docx), retaining the template's
-title/abstract block, two-column body, headers and paragraph styles. The results
-table and figure use full-width sections. Publication metadata and example text
-are omitted from the draft; unresolved author details remain explicit.
-
-To regenerate from Markdown, use Python with `lxml` installed and `pandoc` on PATH:
-
-```bash
-python tools/paper/export_word.py
-```
-
-The default command replaces the generated Word file. Preserve Word edits before
-regenerating, or choose a separate destination with `--output`. Verify pagination
-in Word against the four-page Application Note limit after author revision.
+New recorders can now select explicit models with `--models-dir`; without it, initialization freezes the bundled defaults. Use a new environment/recorder for a new model and retain old freezes. The local sequencing-machine transfer includes update instructions. The version
+0.11.0 source and model changes are published on GitHub `main`; no PyPI release,
+archival deposit or manuscript submission is implied.

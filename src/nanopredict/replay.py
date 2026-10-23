@@ -104,7 +104,8 @@ class ReplaySession:
         self._manual_steps = 0
         self._stopped = False
         self._frozen_available: int | None = None
-        self._assessments: list[dict[str, Any]] = []
+        self._assessments: list[dict[str, Any] | None] = []
+        self._prediction_errors: list[str | None] = []
 
     def start(
         self, sample_id: str, target_gb: float, seconds_per_step: float = 8.0
@@ -122,6 +123,7 @@ class ReplaySession:
             self._stopped = False
             self._frozen_available = None
             self._assessments = []
+            self._prediction_errors = []
             return self.status()
 
     def advance(self) -> dict[str, Any]:
@@ -175,9 +177,14 @@ class ReplaySession:
             while len(self._assessments) < available:
                 row = self._run.snapshots[len(self._assessments)]
                 horizon = int(row["horizon_minutes"])
-                self._assessments.append(
-                    self.engine.assess(row, horizon, self._target_gb)
-                )
+                try:
+                    assessment = self.engine.assess(row, horizon, self._target_gb)
+                    error = None
+                except ValueError as exc:
+                    assessment = None
+                    error = f"Calibrated prediction unavailable: {exc}"
+                self._assessments.append(assessment)
+                self._prediction_errors.append(error)
 
             current_index = len(self._assessments) - 1
             current_row = (
@@ -204,6 +211,10 @@ class ReplaySession:
                 "assessment": (
                     None if current_index < 0 else self._assessments[current_index]
                 ),
+                "prediction_available": current_index < 0 or self._assessments[current_index] is not None,
+                "prediction_unavailable_reason": (
+                    None if current_index < 0 else self._prediction_errors[current_index]
+                ),
                 "history": [
                     {
                         "horizon_minutes": item["prediction"]["horizon_minutes"],
@@ -212,6 +223,7 @@ class ReplaySession:
                         "probability": item["probability_of_reaching_target"],
                     }
                     for item in self._assessments
+                    if item is not None
                 ],
                 "actual_final_gb": self._run.final_passed_gb if completed else None,
                 "message": (

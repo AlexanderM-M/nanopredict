@@ -1,37 +1,7 @@
 # Bioinformatics Advances Application Note
 
-Target selected by the investigator on 16 October 2026. Bioinformatics Advances
-is the primary submission target. The manuscript remains a working draft pending
-author revision and the outstanding validation work.
+The investigator selected this journal and requested its Word template. Its [official guidelines](https://academic.oup.com/bioinformaticsadvances/pages/author-guidelines), rechecked 23 October 2026, specify four pages, an abstract of at most 200 words, up to five keywords, 15 references and three figures/tables combined. Tables should be editable and placed at the end of the main text. Provide a short running head and figure alt text; disclose AI assistance in the manuscript and cover letter.
 
-The official [author guidelines](https://academic.oup.com/bioinformaticsadvances/pages/author-guidelines),
-checked on 16 October 2026, specify:
+The current local Word manuscript (`NanoPredict_manuscript_bioadv_20261023.docx`) uses the supplied journal template (`bioadv-word-template.docx`, supplied locally by the authors), with its title block, paragraph styles and two-column body. It contains a 170-word abstract (whitespace count), five keywords, six references, one editable table and one two-panel figure. Figure legends and alt text are included. The standalone figure is supplied as vector PDF and 600-dpi PNG.
 
-- Up to four journal-formatted pages.
-- An abstract of at most 200 words.
-- Up to five keywords, with journal keywords preferred.
-- At most 15 references.
-- At most three figures or tables in total.
-- Abstract, main text and References as the required sections.
-
-Application Notes describe openly accessible software and its use. The article
-should demonstrate usefulness to a sizeable community through concrete use
-cases, software quality, ease of use, tutorials and documentation. The journal
-also expects a substantive contribution; changing the target does not resolve
-validation or novelty limitations.
-
-The current draft has a structured abstract, five proposed keywords, a running head,
-one results table, one figure and six references. Software availability and
-supplementary-information placeholders are in the back matter. The Word copy uses the supplied `bioadv-word-template.docx`, including its
-full-width front matter and two-column body. The results table and figure span
-both columns. Final pagination must be checked in Word after author revision and move detailed methods
-to supplementary material where necessary.
-
-The investigator will fully revise the manuscript. Retain accurate results and
-limitations, resolve author and institutional details, ethics, funding and data
-availability, and check the journal's current policies before submission.
-
-Live qualification and independent forecast evaluation remain separate tasks.
-The suggested 20–30-run prospective pilot is a feasibility plan, not a journal
-minimum or proof of calibration. Keep the retrospective reconstruction distinct
-from contemporaneous live results and preserve both prespecified analyses.
+Final Word pagination and author details remain to be completed. No journal-wide requirement for prospective collection is asserted. The manuscript distinguishes development results, technical examples and unestablished independent accuracy. See [readiness](readiness.md) for outstanding items.

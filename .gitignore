@@ -43,3 +43,18 @@ paper/archive/
 # Local research inputs and historical workspace backups.
 datasets/
 archive/
+
+# Local sequencing transfers, instrument exports and author-review documents.
+/*.zip
+/*.zip.sha256
+/report_*.json
+/report_*.md
+/pore_activity_*.csv
+/throughput_*.csv
+/sample_sheet_*.csv
+/output_hash_*.csv
+/sequencing-machine-*.txt
+/paper/*.docx
+/paper/*.zip
+/paper/*.zip.sha256
+/paper/author_details_to_complete_*.txt

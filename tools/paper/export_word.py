@@ -101,7 +101,7 @@ def main():
             continue
         if value.startswith("NanoPredict:"):
             target = "Title"
-        elif value.startswith("Provisional authors:"):
+        elif value.startswith(("Provisional authors:", "Authors:")):
             target = "Author-Group"
         elif value.startswith("Affiliations:"):
             target = "Author-Affiliation"
@@ -136,7 +136,9 @@ def main():
             style(item, "RefHead" if references else "Heading1")
             first = True
         elif item.tag == W + "tbl":
-            widths = [2000, 1000, 1800, 1800, 3164]
+            widths = ([1000, 3500, 1500, 1700, 2064] if "Selected model" in value
+                      else [1600, 2200, 2100, 1900, 1964] if "Duration-aware" in value
+                      else [2000, 1000, 1800, 1800, 3164])
             for column, width in zip(item.findall("w:tblGrid/w:gridCol", NS), widths):
                 column.set(W + "w", str(width))
             for row_index, row in enumerate(item.findall("w:tr", NS)):
@@ -161,7 +163,7 @@ def main():
             style(item, "RefText" if references else "para-first" if first else "para1")
             first = False
         body.append(item)
-        if wide and (item.tag == W + "tbl" or value.startswith("Figure 1.")):
+        if wide and (item.tag == W + "tbl" or value.startswith("Alt text:")):
             body.append(boundary(1))
             wide = False
     body.append(section(2))
@@ -187,6 +189,20 @@ def main():
     for name in list(contents):
         if name.startswith("word/media/") and name not in referenced_parts:
             del contents[name]
+    # The reference template's cached page/word counts are not a layout render.
+    # Remove them and its sample organisation/document-title metadata.
+    if "docProps/app.xml" in contents:
+        root = ET.fromstring(contents["docProps/app.xml"])
+        for item in list(root):
+            if ET.QName(item).localname in {
+                "Pages", "Words", "Characters", "CharactersWithSpaces", "Lines",
+                "Paragraphs", "TotalTime", "Company", "Manager", "HeadingPairs",
+                "TitlesOfParts",
+            }:
+                root.remove(item)
+        contents["docProps/app.xml"] = ET.tostring(
+            root, xml_declaration=True, encoding="UTF-8", standalone=True
+        )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     with ZipFile(args.output, "w", ZIP_DEFLATED) as archive:
         for name, content in contents.items():

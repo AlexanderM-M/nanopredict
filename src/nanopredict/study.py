@@ -123,15 +123,44 @@ def interval_prediction(point, residuals, thresholds):
     return {'point_prediction_gb': point, 'prediction_intervals': intervals, 'threshold_probabilities': probabilities}
 
 
-def initialize(root, protocol, thresholds=(1., 5., 10.), *, qualification=False):
+def initialize(root, protocol, thresholds=(1., 5., 10.), *, qualification=False,
+               models_dir=None, predictions_visible=False):
     root, protocol = Path(root), Path(protocol)
     if not protocol.is_file() or not thresholds or any(not math.isfinite(t) or t <= 0 for t in thresholds):
         raise ValueError('Require a protocol file and positive finite targets')
+    selected = Path(models_dir).resolve() if models_dir is not None else DATA_DIR / 'models'
+    # Validate a complete explicit selection before creating a study directory.
+    expected_files = [f'calibrated_yield_{h}min.joblib' for h in HORIZONS]
+    for filename in expected_files:
+        if not (selected / filename).is_file():
+            raise ValueError(f'Missing selected model: {filename}')
+    selected_hashes = {name: digest(selected / name) for name in expected_files}
+    predictor = CalibratedYieldPredictor(selected)
+    if predictor.horizons != list(HORIZONS):
+        raise ValueError('Selected models must contain exactly the 30/60/120-minute checkpoints')
+    for horizon, filename in zip(HORIZONS, expected_files):
+        import joblib
+        if joblib.load(selected / filename)['horizon_minutes'] != horizon:
+            raise ValueError('Selected model filename/checkpoint mismatch')
+        predictor.predict({'device_type': 'MINION_MK1D', 'observed_passed_bases': 1e7,
+                           'observed_through_seconds': horizon * 60,
+                           'planned_run_limit_hours': 3}, horizon, thresholds)
+    references = [a.get('study_baselines') for a in predictor.artifacts.values()]
+    if any(r is not None for r in references):
+        if any(r != references[0] for r in references) or references[0] is None:
+            raise ValueError('Selected models disagree on comparator provenance')
+        baseline_config = references[0]
+        if set(baseline_config['horizons']) != {str(h) for h in HORIZONS}:
+            raise ValueError('Selected comparator checkpoints are incomplete')
+    else:
+        baseline_config = development_baselines()
     root.mkdir(mode=0o700, parents=True, exist_ok=False)
     (root / 'models').mkdir()
     for horizon in HORIZONS:
         filename = f'calibrated_yield_{horizon}min.joblib'
-        shutil.copyfile(DATA_DIR / 'models' / filename, root / 'models' / filename)
+        shutil.copyfile(selected / filename, root / 'models' / filename)
+        if digest(root / 'models' / filename) != selected_hashes[filename]:
+            raise ValueError('Selected model changed during initialization')
     shutil.copyfile(protocol, root / 'protocol.md')
     (root / 'key').write_bytes(secrets.token_bytes(32))
     (root / 'key').chmod(0o600)
@@ -141,7 +170,9 @@ def initialize(root, protocol, thresholds=(1., 5., 10.), *, qualification=False)
                 'protocol_sha256': digest(root / 'protocol.md'), 'thresholds_gb': sorted(set(thresholds)),
                 'horizons': list(HORIZONS), 'deadline_seconds': 120, 'max_snapshot_age_seconds': 120,
                 'poll_seconds': 20, 'bootstrap_seed': 20261008, 'bootstrap_replicates': 2000,
-                'methods': list(METHODS), 'baselines': development_baselines(),
+                'methods': list(METHODS), 'baselines': baseline_config,
+                'model_selection': 'explicit' if models_dir is not None else 'bundled_default',
+                'predictions_shown_to_operator': bool(predictions_visible),
                 'interpretation': ('NON-STUDY qualification only; never eligible for independent evaluation' if qualification else 'Frozen prospective evaluation candidate; original training membership unresolved; independence requires recruitment review')}
     # The evaluator reconstructs these exact UTF-8 bytes with an LF terminator.
     # Binary output prevents Windows text mode from translating LF to CRLF.
@@ -177,7 +208,9 @@ class Study:
             self.db.close()
             raise
         self.predictor = CalibratedYieldPredictor(self.root / 'models')
-        self.features = sorted(set().union(*(a['feature_columns'] for a in self.predictor.artifacts.values())))
+        self.features = sorted(set().union(*(
+            set(a['feature_columns']) | set(a.get('recording_feature_columns', []))
+            for a in self.predictor.artifacts.values())))
 
     def close(self):
         self.db.close()
@@ -262,7 +295,7 @@ class Study:
                            'collector_mode': context.get('collector_mode'), 'device_api_type': context.get('device_api_type'),
                            'freeze_sha256': digest(self.root / 'freeze.json'), 'features': {}, 'predictions': {},
                            'availability_semantics': 'received by collector; earlier API/internal feature availability unknown',
-                           'predictions_shown_to_operator': False}
+                           'predictions_shown_to_operator': self.manifest.get('predictions_shown_to_operator', False)}
                 if not late:
                     begin = time.perf_counter()
                     try:
@@ -334,6 +367,8 @@ def main(argv=None):
     init = sub.add_parser('init'); init.add_argument('--study', type=Path, required=True); init.add_argument('--protocol', type=Path, required=True)
     init.add_argument('--threshold-gb', type=float, action='append')
     init.add_argument('--qualification', action='store_true', help='Non-study device qualification; evaluator refuses these exports')
+    init.add_argument('--models-dir', type=Path, help='Explicit candidate directory; validated and copied into the new freeze')
+    init.add_argument('--predictions-visible', action='store_true', help='Record possible operator exposure through a dashboard')
     for name in ('enroll', 'collect', 'status', 'end', 'export'):
         p = sub.add_parser(name); p.add_argument('--study', type=Path, required=True)
         if name in ('enroll', 'collect'):
@@ -353,7 +388,8 @@ def main(argv=None):
     if a.action == 'new-group':
         print(uuid.uuid4()); return
     if a.action == 'init':
-        print(initialize(a.study, a.protocol, a.threshold_gb or (1.,5.,10.), qualification=a.qualification)); return
+        print(initialize(a.study, a.protocol, a.threshold_gb or (1.,5.,10.), qualification=a.qualification,
+                         models_dir=a.models_dir, predictions_visible=a.predictions_visible)); return
     study = Study(a.study)
     try:
         if a.action == 'enroll':

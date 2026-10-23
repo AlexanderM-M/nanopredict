@@ -980,7 +980,12 @@ class _PositionMonitor:
                     row = self.collector.collect(horizon, context)
                 except CheckpointNotReadyError:
                     break
-                assessment = self.engine.assess(row, horizon, target_gb)
+                try:
+                    assessment = self.engine.assess(row, horizon, target_gb)
+                except ValueError as exc:
+                    context = {**context, "prediction_available": False,
+                               "prediction_unavailable_reason": f"Calibrated prediction unavailable: {exc}"}
+                    break
                 with self._lock:
                     if target_gb != self._target_gb:
                         assessment = self.engine.assess(
